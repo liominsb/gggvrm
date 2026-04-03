@@ -1,0 +1,73 @@
+package utils // Package utils 实用性
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"gggvrm/global"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+)
+
+func HashPassword(pwd string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(pwd), 12)
+	return string(hash), err
+}
+
+func GenerateJWT(id uint) (string, error) { //生成JWT
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"ID":  id,
+		"exp": time.Now().Add(72 * time.Hour).Unix(),
+	})
+	signedToken, err := token.SignedString([]byte("JWT_SECRET"))
+	return "Bearer " + signedToken, err
+}
+
+func CheckPassword(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
+// 解析JWT
+func ParseJWT(tokenString string) (uint, error) { //
+	if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
+		tokenString = tokenString[7:]
+	}
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte("JWT_SECRET"), nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		id, ok := claims["ID"].(float64)
+		if !ok {
+			return 0, errors.New("Invalid token")
+		}
+		return uint(id), nil
+	}
+	return 0, errors.New("Invalid token")
+}
+
+// 设置缓存
+func Setcache(ctx *gin.Context, key string, value interface{}) {
+	valueJSON, err := json.Marshal(value)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := global.RedisDB.Set(key, valueJSON, 10*time.Minute).Err(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+}
