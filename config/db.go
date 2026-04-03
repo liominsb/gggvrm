@@ -2,6 +2,7 @@ package config
 
 import (
 	"gggvrm/global"
+	"gggvrm/models"
 	"log"
 	"time"
 
@@ -28,4 +29,14 @@ func initDB() {
 	}
 
 	global.Db = db
+
+	err = global.Db.AutoMigrate(
+		&models.User{},
+		&models.Article{},
+		&models.Comment{},
+	)
+	if err != nil {
+		log.Fatalf("数据库表结构同步失败: %v", err)
+	}
+	log.Println("数据库表结构同步成功！")
 }

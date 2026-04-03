@@ -32,10 +32,6 @@ func CreateComment(ctx *gin.Context) {
 		UserID:    id.(uint),
 		Content:   ctx.PostForm("content"),
 	}
-	if err := global.Db.AutoMigrate(&comment); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
 
 	if err := global.Db.Create(&comment).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
