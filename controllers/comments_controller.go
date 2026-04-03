@@ -17,19 +17,24 @@ import (
 // CreateComments 创建评论
 func CreateComment(ctx *gin.Context) {
 	articleIDstring := ctx.Param("id")
+
 	articleID, err := strconv.ParseUint(articleIDstring, 10, 32)
+
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
 		return
 	}
+
 	id, ok := ctx.Get("ID")
 	if !ok {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
+	userid := id.(uint)
+
 	comment := models.Comment{
 		ArticleID: uint(articleID),
-		UserID:    id.(uint),
+		UserID:    userid,
 		Content:   ctx.PostForm("content"),
 	}
 
@@ -44,6 +49,52 @@ func CreateComment(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, comment)
+}
+
+func DelComments(ctx *gin.Context) {
+	commentIDStr := ctx.Param("id")
+
+	commentID, err := strconv.ParseUint(commentIDStr, 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
+		return
+	}
+
+	id, ok := ctx.Get("ID")
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+	userid := id.(uint)
+
+	comment := models.Comment{}
+	if err := global.Db.Where("id = ?", commentID).First(&comment).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	article := models.Article{}
+	if err := global.Db.Where("id = ?", comment.ArticleID).First(&article).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if userid != comment.UserID && userid != article.UserID {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	if err := global.Db.Unscoped().Delete(&comment).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	cacheKey := fmt.Sprintf("article:%d:comments", article.ID)
+	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
+		fmt.Printf("【Redis警告】清理文章 %d 缓存失败: %v\n", comment.ArticleID, err)
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }
 
 // GetComments 获取单个文章的所有评论

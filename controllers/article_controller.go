@@ -3,6 +3,7 @@ package controllers // Package controllers 控制器
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"gggvrm/global"
 	"gggvrm/models"
 	"gggvrm/utils"
@@ -92,4 +93,43 @@ func GetArticlesByID(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, article)
+}
+
+func DelArticle(ctx *gin.Context) {
+	idA := ctx.Param("id")
+	idU, ok := ctx.Get("ID")
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "用户未登录或身份已过期"})
+		return
+	}
+
+	var article models.Article
+
+	if err := global.Db.Where("id = ?", idA).First(&article).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	if article.UserID != idU.(uint) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "无权限删除该文章"})
+		return
+	}
+
+	if err := global.Db.Delete(&article).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
+		fmt.Printf("【警告】文章已删除，但清理文章列表缓存失败: %v\n", err)
+	}
+
+	global.RedisDB.Del(fmt.Sprintf("article:%s:comments", idA))
+	global.RedisDB.Del(fmt.Sprintf("article:%s:likes", idA))
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
