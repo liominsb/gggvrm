@@ -1,8 +1,6 @@
 package models // Package models 模型
 
 import (
-	"os/user"
-
 	"gorm.io/gorm"
 )
 
@@ -18,9 +16,9 @@ type Article struct {
 	Content  string    `json:"content" binding:"required"` //内容
 	Preview  string    `json:"preview" binding:"required"` //预览
 	Likes    int       `json:"likes" gorm:"default:0"`     //喜好
-	User     user.User `json:"user" gorm:"foreignKey:UserID"`
+	User     User      `json:"user" gorm:"foreignKey:UserID"`
 	UserID   uint      `json:"user_id" binding:"required"`
-	Comments []Comment `json:"comments" gorm:"foreignKey:ArticleID"` //评论
+	Comments []Comment `json:"comments" gorm:"foreignKey:ArticleID;constraint:OnDelete:CASCADE;"` //评论
 }
 
 type Comment struct {

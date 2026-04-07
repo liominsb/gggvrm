@@ -37,8 +37,12 @@ func SetupRouter() *gin.Engine {
 	api := r.Group("/api/v1")
 	api.Use(middlewares.AuthMiddleware())
 	{
-		api.POST("/article/:id", controllers.CreateArticle)
-		api.POST("/article/:id", controllers.DelArticle)
+		api.GET("/user", controllers.Getmyuser)
+		api.GET("/user/:id", controllers.GetUserProfileById)
+		api.PUT("/user", controllers.Changepassword)
+
+		api.POST("/article", controllers.CreateArticle)
+		api.DELETE("/article/:id", controllers.DelArticle)
 		api.GET("/articles", controllers.GetArticles)
 		api.GET("/article/:id", controllers.GetArticlesByID)
 
@@ -46,7 +50,7 @@ func SetupRouter() *gin.Engine {
 		api.GET("/article/:id/like", controllers.GetArticlelikes)
 
 		api.POST("/article/:id/comment", controllers.CreateComment)
-		api.POST("/article/:id/comment", controllers.DelComments)
+		api.DELETE("/comment/:id", controllers.DelComment)
 		api.GET("/article/:id/comments", controllers.GetComments)
 	}
 	return r

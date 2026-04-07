@@ -52,9 +52,8 @@ func CreateArticle(ctx *gin.Context) {
 func GetArticles(ctx *gin.Context) {
 
 	cacheData, err := global.RedisDB.Get(cacheKey).Result()
-
+	var articles []models.Article
 	if errors.Is(err, redis.Nil) {
-		var articles []models.Article
 
 		if err := global.Db.Find(&articles).Error; err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -70,7 +69,6 @@ func GetArticles(ctx *gin.Context) {
 		return
 	}
 
-	var articles []models.Article
 	if err := json.Unmarshal([]byte(cacheData), &articles); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

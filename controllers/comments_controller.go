@@ -51,7 +51,7 @@ func CreateComment(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, comment)
 }
 
-func DelComments(ctx *gin.Context) {
+func DelComment(ctx *gin.Context) {
 	commentIDStr := ctx.Param("id")
 
 	commentID, err := strconv.ParseUint(commentIDStr, 10, 32)
