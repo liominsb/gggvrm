@@ -34,6 +34,8 @@ func initDB() {
 		&models.User{},
 		&models.Article{},
 		&models.Comment{},
+		&models.Tag{},
+		&models.Category{},
 	)
 	if err != nil {
 		log.Fatalf("数据库表结构同步失败: %v", err)

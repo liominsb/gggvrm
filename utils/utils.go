@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gggvrm/config"
 	"gggvrm/global"
 	"net/http"
 	"time"
@@ -23,7 +24,7 @@ func GenerateJWT(id uint) (string, error) { //生成JWT
 		"ID":  id,
 		"exp": time.Now().Add(72 * time.Hour).Unix(),
 	})
-	signedToken, err := token.SignedString([]byte("JWT_SECRET"))
+	signedToken, err := token.SignedString([]byte(config.Appconf.JWT.Key))
 	return "Bearer " + signedToken, err
 }
 
@@ -41,7 +42,7 @@ func ParseJWT(tokenString string) (uint, error) { //
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte("JWT_SECRET"), nil
+		return []byte(config.Appconf.JWT.Key), nil
 	})
 	if err != nil {
 		return 0, err
@@ -57,17 +58,18 @@ func ParseJWT(tokenString string) (uint, error) { //
 }
 
 // 设置缓存
-func Setcache(ctx *gin.Context, key string, value interface{}) {
+func Setcache(ctx *gin.Context, key string, value interface{}) error {
 	valueJSON, err := json.Marshal(value)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return err
 	}
 
 	if err := global.RedisDB.Set(key, valueJSON, 10*time.Minute).Err(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return err
 	}
 
+	return nil
 }

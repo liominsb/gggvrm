@@ -4,6 +4,15 @@ import (
 	"gorm.io/gorm"
 )
 
+type Category struct {
+	gorm.Model
+	Name string `json:"name"` // 分类名称
+}
+type Tag struct {
+	gorm.Model
+	Name string `json:"name"` // 标签名称
+}
+
 // Article 表示一篇文章
 // Title  文章标题（必填）
 // Content 文章正文（必填）
@@ -19,6 +28,11 @@ type Article struct {
 	User     User      `json:"user" gorm:"foreignKey:UserID"`
 	UserID   uint      `json:"user_id" binding:"required"`
 	Comments []Comment `json:"comments" gorm:"foreignKey:ArticleID;constraint:OnDelete:CASCADE;"` //评论
+
+	CategoryID uint     `json:"category_id"` // 记录分类的 ID
+	Category   Category `json:"category" gorm:"foreignKey:CategoryID"`
+
+	Tags []Tag `json:"tags" gorm:"many2many:article_tags;"`
 }
 
 type Comment struct {

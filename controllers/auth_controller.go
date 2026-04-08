@@ -103,7 +103,10 @@ func Getmyuser(ctx *gin.Context) {
 			return
 		}
 
-		utils.Setcache(ctx, fmt.Sprintf("USER:%d", id.(uint)), user)
+		if err := utils.Setcache(ctx, fmt.Sprintf("USER:%d", id.(uint)), user); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+
 		user.Password = ""
 		ctx.JSON(http.StatusOK, gin.H{"user": user})
 		return
@@ -149,7 +152,9 @@ func GetUserProfileById(ctx *gin.Context) {
 		// 绝对不能把密码暴露出去
 		user.Password = ""
 
-		utils.Setcache(ctx, cacheKey, user)
+		if err := utils.Setcache(ctx, cacheKey, user); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		ctx.JSON(http.StatusOK, gin.H{"user": user})
 		return
 	} else if err != nil {

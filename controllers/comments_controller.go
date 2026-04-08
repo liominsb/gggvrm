@@ -114,7 +114,9 @@ func GetComments(ctx *gin.Context) {
 			return
 		}
 
-		utils.Setcache(ctx, cacheKey, comments)
+		if err := utils.Setcache(ctx, cacheKey, comments); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		ctx.JSON(http.StatusOK, comments)
 		return
 	}
