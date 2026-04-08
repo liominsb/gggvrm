@@ -323,8 +323,20 @@ func UpdateArticle(ctx *gin.Context) {
 		}
 	}
 
+	updateData := map[string]interface{}{
+		"title":       input.Title,
+		"content":     input.Content,
+		"preview":     input.Preview,
+		"category_id": input.CategoryID,
+	}
+
+	if err := global.Db.Model(&article).Preload("Category").Preload("Tags").Updates(updateData).Find(&article).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	} // 更新后重新查询一次，获取完整的文章数据（包括预加载的分类和标签）
+
 	// 清理缓存（重要：文章修改后，详情缓存和列表分页缓存都会失效）
-	clearArticlesCache() // 你之前写的辅助函数
+	clearArticlesCache()
 	global.RedisDB.Del(fmt.Sprintf("article:detail:%s", articleID))
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "更新成功", "article": article})
