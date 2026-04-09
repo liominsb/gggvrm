@@ -32,10 +32,20 @@ func CreateComment(ctx *gin.Context) {
 	}
 	userid := id.(uint)
 
+	var input struct {
+		Content string `json:"content" binding:"required"`
+	}
+
+	// 2. 解析前端传来的 application/json 数据
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "评论内容不能为空或格式错误"})
+		return
+	}
+
 	comment := models.Comment{
 		ArticleID: uint(articleID),
 		UserID:    userid,
-		Content:   ctx.PostForm("content"),
+		Content:   input.Content,
 	}
 
 	if err := global.Db.Create(&comment).Error; err != nil {

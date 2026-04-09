@@ -20,6 +20,8 @@ func LikeArticle(ctx *gin.Context) {
 		return
 	}
 
+	if err:=global.Db.
+
 	ctx.JSON(http.StatusOK, gin.H{"message": "点赞成功"})
 }
 

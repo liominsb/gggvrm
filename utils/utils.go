@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"gggvrm/config"
 	"gggvrm/global"
+	"gggvrm/models"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -72,4 +75,42 @@ func Setcache(ctx *gin.Context, key string, value interface{}) error {
 	}
 
 	return nil
+}
+
+func SyncSql() {
+	for {
+		time.Sleep(1 * time.Minute)
+		keys, err := global.RedisDB.Keys("article:*:likes").Result()
+		if err != nil {
+			fmt.Println("获取 Redis Keys 失败:", err)
+			return
+		}
+
+		for _, key := range keys {
+			parts := strings.Split(key, ":")
+			if len(parts) != 3 {
+				continue
+			}
+
+			articleIDStr := parts[1]
+			articleID, err := strconv.Atoi(articleIDStr)
+			if err != nil {
+				continue
+			}
+
+			likesStr, err := global.RedisDB.Get(key).Result()
+			if err != nil {
+				continue
+			}
+			likes, err := strconv.Atoi(likesStr)
+			if err != nil {
+				continue
+			}
+
+			if err := global.Db.Model(&models.Article{}).Update("likes", likes).Where("id = ?", articleID).Error; err != nil {
+				fmt.Printf("更新文章 %d 点赞数失败: %v\n", articleID, err)
+			}
+		}
+		fmt.Println("已同步点赞数到数据库")
+	}
 }

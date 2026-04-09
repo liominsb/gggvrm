@@ -3,6 +3,7 @@ package main
 import (
 	"gggvrm/config"
 	"gggvrm/router"
+	"gggvrm/utils"
 )
 
 func main() {
@@ -15,8 +16,10 @@ func main() {
 		Port = ":8080"
 	}
 
+	go utils.SyncSql() //同步like数据到数据库
+
 	err := r.Run(Port)
 	if err != nil {
-		return 
+		return
 	}
 }
