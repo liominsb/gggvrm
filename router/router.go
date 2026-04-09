@@ -28,6 +28,8 @@ func SetupRouter() *gin.Engine {
 		MaxAge: 12 * time.Hour,
 	}))
 
+	r.Static("/uploads", "./uploads")
+
 	auth := r.Group("/api/auth")
 	{
 		auth.POST("login", controllers.Login)
@@ -53,6 +55,8 @@ func SetupRouter() *gin.Engine {
 		api.POST("/article/:id/comment", controllers.CreateComment)
 		api.DELETE("/comment/:id", controllers.DelComment)
 		api.GET("/article/:id/comments", controllers.GetComments)
+
+		api.POST("/upload", controllers.UploadImage)
 	}
 	return r
 }

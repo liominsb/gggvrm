@@ -27,6 +27,7 @@ type ArticleListResponse struct {
 	UserID       uint      `json:"user_id"`
 	CategoryName string    `json:"category_name"` // 附加分类名
 	Tags         []string  `json:"tags"`          // 附加标签数组
+	CoverImg     string    `json:"cover_img"`     //【新增】封面图的 URL
 	CreatedAt    time.Time `json:"created_at"`    // gorm.Model 自带的创建时间，列表通常需要展示
 }
 
@@ -167,6 +168,7 @@ func GetArticles(ctx *gin.Context) {
 			UserID:       a.UserID,
 			CategoryName: a.Category.Name, // 需要预加载 Category
 			Tags:         tagNames,
+			CoverImg:     a.CoverImg, //【新增】封面图的 URL
 			CreatedAt:    a.CreatedAt,
 		})
 	}
@@ -294,6 +296,7 @@ func UpdateArticle(ctx *gin.Context) {
 		Preview    string `json:"preview" binding:"required"`
 		CategoryID uint   `json:"category_id"` // 新增分类 ID
 		TagIDs     []uint `json:"tag_ids"`     // 新增标签 ID 数组
+		CoverImg   string `json:"cover_img"`   //【新增】封面图的 URL
 	}
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -328,6 +331,7 @@ func UpdateArticle(ctx *gin.Context) {
 		"content":     input.Content,
 		"preview":     input.Preview,
 		"category_id": input.CategoryID,
+		"cover_img":   input.CoverImg,
 	}
 
 	if err := global.Db.Model(&article).Preload("Category").Preload("Tags").Updates(updateData).Find(&article).Error; err != nil {

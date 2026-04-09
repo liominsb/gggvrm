@@ -27,6 +27,7 @@ type Article struct {
 	Likes    int       `json:"likes" gorm:"default:0"`     //喜好
 	User     User      `json:"user" gorm:"foreignKey:UserID"`
 	UserID   uint      `json:"user_id" binding:"required"`
+	CoverImg string    `json:"cover_img"`                                                         //【新增】封面图的 URL
 	Comments []Comment `json:"comments" gorm:"foreignKey:ArticleID;constraint:OnDelete:CASCADE;"` //评论
 
 	CategoryID uint     `json:"category_id"` // 记录分类的 ID

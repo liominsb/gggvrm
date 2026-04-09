@@ -38,10 +38,10 @@ func Register(ctx *gin.Context) {
 		return
 	}
 
-	if err := global.Db.AutoMigrate(&models.User{}); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to migrate database"})
-		return
-	}
+	//if err := global.Db.AutoMigrate(&models.User{}); err != nil {
+	//	ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to migrate database"})
+	//	return
+	//}
 
 	if err := global.Db.Create(&user).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create database"})
