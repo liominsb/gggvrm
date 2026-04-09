@@ -49,18 +49,45 @@ func clearArticlesCache() {
 func CreateArticle(ctx *gin.Context) {
 	var article models.Article
 
+	var input struct {
+		Title      string `json:"title" binding:"required"`
+		Content    string `json:"content" binding:"required"`
+		Preview    string `json:"preview" binding:"required"`
+		CategoryID uint   `json:"category_id"` // 新增分类 ID
+		TagIDs     []uint `json:"tag_ids"`     // 新增标签 ID 数组
+		CoverImg   string `json:"cover_img"`   //【新增】封面图的 URL
+	}
+
 	id, ok := ctx.Get("ID")
 	if !ok {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "用户未登录或身份已过期"})
 		return
 	}
 
-	if err := ctx.ShouldBindJSON(&article); err != nil {
+	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	article.UserID = id.(uint)
+	article = models.Article{
+		Title:      input.Title,
+		Content:    input.Content,
+		Preview:    input.Preview,
+		CategoryID: input.CategoryID,
+		CoverImg:   input.CoverImg,
+		UserID:     id.(uint),
+	}
+
+	if len(input.TagIDs) > 0 {
+		var tags []models.Tag
+		// 从数据库查出这些 ID 对应的真实标签数据
+		if err := global.Db.Where("id IN ?", input.TagIDs).Find(&tags).Error; err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "查询标签失败"})
+			return
+		}
+		// 将查出的标签对象切片赋值给 article
+		article.Tags = tags
+	}
 
 	if err := global.Db.Create(&article).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
