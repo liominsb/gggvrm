@@ -106,7 +106,7 @@ func GetArticles(ctx *gin.Context) {
 	pageSizeStr := ctx.DefaultQuery("page_size", "10")
 	categoryIDStr := ctx.Query("category_id") // 新增：获取分类筛选参数
 	tagIDStr := ctx.Query("tag_id")           // 新增：获取标签筛选参数
-
+	keyword := ctx.Query("keyword")           // 新增：获取搜索关键词参数
 	page, _ := strconv.Atoi(pageStr)
 	pageSize, _ := strconv.Atoi(pageSizeStr)
 	categoryID, _ := strconv.Atoi(categoryIDStr)
@@ -160,6 +160,11 @@ func GetArticles(ctx *gin.Context) {
 	if tagID > 0 {
 		query = query.Joins("JOIN article_tags ON article_tags.article_id = articles.id").
 			Where("article_tags.tag_id = ?", tagID)
+	}
+
+	if keyword != "" {
+		likePattern := "%" + keyword + "%"
+		query = query.Where("articles.title LIKE ? OR articles.preview LIKE ?", likePattern, likePattern)
 	}
 
 	var total int64
