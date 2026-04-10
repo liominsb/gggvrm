@@ -7,12 +7,10 @@ import (
 	"gggvrm/config"
 	"gggvrm/global"
 	"gggvrm/models"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -61,16 +59,14 @@ func ParseJWT(tokenString string) (uint, error) { //
 }
 
 // Setcache 设置缓存
-func Setcache(ctx *gin.Context, key string, value interface{}) error {
+func Setcache(key string, value interface{}) error {
 	valueJSON, err := json.Marshal(value)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return err
 	}
 
 	if err := global.RedisDB.Set(key, valueJSON, 10*time.Minute).Err(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return err
 	}
 

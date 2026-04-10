@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
+	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 )
 
@@ -212,7 +213,7 @@ func GetArticles(ctx *gin.Context) {
 		Data:  response,
 	}
 	//将轻量级的数据存入缓存
-	if err := utils.Setcache(ctx, dynamicCacheKey, cacheObj); err != nil {
+	if err := utils.Setcache(dynamicCacheKey, cacheObj); err != nil {
 		fmt.Printf("【Redis警告】缓存文章列表失败: %v\n", err)
 	}
 
@@ -230,42 +231,111 @@ func GetArticlesByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 
 	var article models.Article
+	var comments []models.Comment
+	var likes string
 
-	cacheKey := fmt.Sprintf("article:detail:%s", id)
+	eg, gCtx := errgroup.WithContext(ctx.Request.Context())
 
-	datastr, err := global.RedisDB.Get(cacheKey).Result()
-	if err == nil {
-		if err := json.Unmarshal([]byte(datastr), &article); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	eg.Go(func() error {
+		cacheKey := fmt.Sprintf("article:detail:%s", id)
+
+		datastr, err := global.RedisDB.WithContext(gCtx).Get(cacheKey).Result()
+		if err == nil {
+			if err := json.Unmarshal([]byte(datastr), &article); err != nil {
+				return err
+			}
+			return nil
+		}
+		if !errors.Is(err, redis.Nil) {
+			return err
+		}
+
+		if err := global.Db.WithContext(gCtx).Preload("Category").Preload("Tags").Where("id = ?", id).First(&article).Error; err != nil {
+			return err
+		}
+
+		if err := utils.Setcache(cacheKey, article); err != nil {
+			fmt.Printf("【Redis警告】缓存文章详情失败: %v\n", err)
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		articleID, err := strconv.ParseUint(id, 10, 32)
+		cacheKey := fmt.Sprintf("article:%d:comments", articleID)
+
+		cacheData, err := global.RedisDB.WithContext(gCtx).Get(cacheKey).Result()
+
+		if errors.Is(err, redis.Nil) {
+
+			if err := global.Db.WithContext(gCtx).Where("article_id = ?", articleID).Find(&comments).Error; err != nil {
+				return err
+			}
+
+			if err := utils.Setcache(cacheKey, comments); err != nil {
+				fmt.Printf("【Redis警告】缓存文章评论失败: %v\n", err)
+			}
+
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		if err := json.Unmarshal([]byte(cacheData), &comments); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		var err error
+		var temp models.Article // 任务三专用的临时变量
+
+		likeKey := "article:" + id + ":likes"
+
+		likes, err = global.RedisDB.WithContext(gCtx).Get(likeKey).Result()
+
+		if errors.Is(err, redis.Nil) {
+			// 只查询 likes 字段，提高效率
+			if err := global.Db.WithContext(gCtx).Select("likes").Where("id = ?", id).First(&temp).Error; err != nil {
+				return err
+			}
+
+			if err := global.RedisDB.SetNX(likeKey, temp.Likes, 0).Err(); err != nil {
+				return err
+			}
+			likes = strconv.Itoa(temp.Likes)
+		} else if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	go func() {
+		if err := global.RedisDB.Incr(fmt.Sprintf("article:%s:views", id)).Err(); err != nil {
+			fmt.Printf("【Redis警告】增加文章浏览量失败: %v\n", err)
 			return
 		}
-		ctx.JSON(http.StatusOK, article)
-		return
-	}
-	if !errors.Is(err, redis.Nil) {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "读取缓存异常"})
-		return
-	}
+	}()
 
-	if err := global.Db.Preload("Category").Preload("Tags").Where("id = ?", id).First(&article).Error; err != nil {
+	if err := eg.Wait(); err != nil {
+		// 精准识别是不是文章根本不存在
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "该文章不存在"})
+			return
 		}
+		// 其他系统错误
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "数据组装失败", "detail": err.Error()})
 		return
 	}
 
-	if err := utils.Setcache(ctx, cacheKey, article); err != nil {
-		fmt.Printf("【Redis警告】缓存文章详情失败: %v\n", err)
-	}
-
-	if err := global.RedisDB.Incr(fmt.Sprintf("article:%s:views", id)).Err(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, article)
+	ctx.JSON(http.StatusOK, gin.H{
+		"article":  article,
+		"comments": comments,
+		"likes":    likes,
+	})
 }
 
 func DelArticle(ctx *gin.Context) {
