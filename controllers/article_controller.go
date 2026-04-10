@@ -24,6 +24,7 @@ type ArticleListResponse struct {
 	Title        string    `json:"title"`
 	Preview      string    `json:"preview"`
 	Likes        int       `json:"likes"`
+	Views        int       `json:"views"`
 	UserID       uint      `json:"user_id"`
 	CategoryName string    `json:"category_name"` // 附加分类名
 	Tags         []string  `json:"tags"`          // 附加标签数组
@@ -179,7 +180,7 @@ func GetArticles(ctx *gin.Context) {
 		}
 	}
 
-	// 4. 数据转换 (DTO 映射)
+	//数据转换 (DTO 映射)
 	// 将查出来的 []models.Article 转换为干净的 []ArticleListResponse
 	var response = make([]ArticleListResponse, 0) // 初始化为空切片，防止返回 null
 	for _, a := range articles {
@@ -192,6 +193,7 @@ func GetArticles(ctx *gin.Context) {
 			Title:        a.Title,
 			Preview:      a.Preview,
 			Likes:        a.Likes,
+			Views:        a.Views,
 			UserID:       a.UserID,
 			CategoryName: a.Category.Name, // 需要预加载 Category
 			Tags:         tagNames,
@@ -204,12 +206,12 @@ func GetArticles(ctx *gin.Context) {
 		Total: total,
 		Data:  response,
 	}
-	// 5. 将轻量级的数据存入缓存
+	//将轻量级的数据存入缓存
 	if err := utils.Setcache(ctx, dynamicCacheKey, cacheObj); err != nil {
 		fmt.Printf("【Redis警告】缓存文章列表失败: %v\n", err)
 	}
 
-	// 6. 返回给前端
+	//返回给前端
 	ctx.JSON(http.StatusOK, gin.H{
 		"data":      response,
 		"total":     total,
@@ -251,6 +253,11 @@ func GetArticlesByID(ctx *gin.Context) {
 
 	if err := utils.Setcache(ctx, cacheKey, article); err != nil {
 		fmt.Printf("【Redis警告】缓存文章详情失败: %v\n", err)
+	}
+
+	if err := global.RedisDB.Incr(fmt.Sprintf("article:%s:views", id)).Err(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	ctx.JSON(http.StatusOK, article)

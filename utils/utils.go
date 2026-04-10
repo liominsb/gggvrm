@@ -112,5 +112,38 @@ func SyncSql() {
 			}
 		}
 		fmt.Println("已同步点赞数到数据库")
+
+		keys, err = global.RedisDB.Keys("article:*:views").Result()
+		if err != nil {
+			fmt.Println("获取 Redis Keys 失败:", err)
+			return
+		}
+
+		for _, key := range keys {
+			parts := strings.Split(key, ":")
+			if len(parts) != 3 {
+				continue
+			}
+
+			articleIDStr := parts[1]
+			articleID, err := strconv.Atoi(articleIDStr)
+			if err != nil {
+				continue
+			}
+
+			viewsStr, err := global.RedisDB.Get(key).Result()
+			if err != nil {
+				continue
+			}
+			views, err := strconv.Atoi(viewsStr)
+			if err != nil {
+				continue
+			}
+
+			if err := global.Db.Model(&models.Article{}).Update("views", views).Where("id = ?", articleID).Error; err != nil {
+				fmt.Printf("更新文章 %d 浏览数失败: %v\n", articleID, err)
+			}
+		}
+		fmt.Println("已同步浏览数到数据库")
 	}
 }

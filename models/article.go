@@ -13,18 +13,13 @@ type Tag struct {
 	Name string `json:"name"` // 标签名称
 }
 
-// Article 表示一篇文章
-// Title  文章标题（必填）
-// Content 文章正文（必填）
-// Preview 文章预览（必填）
-// Likes   点赞数，默认为 0
-// Comments 文章评论
 type Article struct {
 	gorm.Model
 	Title    string    `json:"title" binding:"required"`   //标题
 	Content  string    `json:"content" binding:"required"` //内容
 	Preview  string    `json:"preview" binding:"required"` //预览
-	Likes    int       `json:"likes" gorm:"default:0"`     //喜好
+	Likes    int       `json:"likes" gorm:"default:0"`     //点赞数，默认为0
+	Views    int       `json:"views" gorm:"default:0"`     //浏览数，默认为0
 	User     User      `json:"user" gorm:"foreignKey:UserID"`
 	UserID   uint      `json:"user_id" binding:"required"`
 	CoverImg string    `json:"cover_img"`                                                         //【新增】封面图的 URL
