@@ -17,28 +17,33 @@ import (
 // Register 注册
 func Register(ctx *gin.Context) {
 	var user models.User
-	if err := ctx.ShouldBind(&user); err != nil {
+	var input struct {
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}
+	if err := ctx.ShouldBind(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	hashedPwd, err := utils.HashPassword(user.Password)
+	hashedPwd, err := utils.HashPassword(input.Password)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 		return
 	}
+	user.Username = input.Username
 	user.Password = hashedPwd
+
+	if err := global.Db.Create(&user).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create database"})
+		return
+	}
 
 	token, err := utils.GenerateJWT(user.ID)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := global.Db.Create(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create database"})
 		return
 	}
 
