@@ -16,3 +16,6 @@ vendor/
 # 忽略本地的环境变量/配置文件（防密码泄露）
 *.env
 config.yml
+
+# 忽略图片文件
+uploads/

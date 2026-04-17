@@ -17,7 +17,6 @@ import (
 // Register 注册
 func Register(ctx *gin.Context) {
 	var user models.User
-
 	if err := ctx.ShouldBind(&user); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -37,11 +36,6 @@ func Register(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	//if err := global.Db.AutoMigrate(&models.User{}); err != nil {
-	//	ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to migrate database"})
-	//	return
-	//}
 
 	if err := global.Db.Create(&user).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create database"})

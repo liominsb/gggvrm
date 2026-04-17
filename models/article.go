@@ -20,13 +20,13 @@ type Article struct {
 	Preview  string    `json:"preview" binding:"required"` //预览
 	Likes    int       `json:"likes" gorm:"default:0"`     //点赞数，默认为0
 	Views    int       `json:"views" gorm:"default:0"`     //浏览数，默认为0
-	User     User      `json:"user" gorm:"foreignKey:UserID"`
+	User     *User     `json:"user" gorm:"foreignKey:UserID"`
 	UserID   uint      `json:"user_id" binding:"required"`
 	CoverImg string    `json:"cover_img"`                                                         //【新增】封面图的 URL
 	Comments []Comment `json:"comments" gorm:"foreignKey:ArticleID;constraint:OnDelete:CASCADE;"` //评论
 
-	CategoryID uint     `json:"category_id"` // 记录分类的 ID
-	Category   Category `json:"category" gorm:"foreignKey:CategoryID"`
+	CategoryID uint      `json:"category_id"` // 记录分类的 ID
+	Category   *Category `json:"category" gorm:"foreignKey:CategoryID"`
 
 	Tags []Tag `json:"tags" gorm:"many2many:article_tags;"`
 }
