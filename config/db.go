@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"gggvrm/global"
 	"gggvrm/models"
 	"log"
@@ -29,6 +30,31 @@ func initDB() {
 	}
 
 	global.Db = db
+
+	// Tag 的 Articles 字段使用 TagArticles 中间表
+	err = global.Db.SetupJoinTable(&models.Tag{}, "Articles", &models.ArticleTags{})
+	if err != nil {
+		fmt.Println("注册 Tag 的中间表失败:", err)
+		return
+	}
+	// Article 的 Tags 字段使用 TagArticles 中间表
+	err = global.Db.SetupJoinTable(&models.Article{}, "Tags", &models.ArticleTags{})
+	if err != nil {
+		fmt.Println("注册 Article 的中间表失败:", err)
+		return
+	}
+
+	err = global.Db.SetupJoinTable(&models.User{}, "Favorites", &models.UserArticleFavor{})
+	if err != nil {
+		fmt.Println("注册 User 的中间表失败:", err)
+		return
+	}
+
+	err = global.Db.SetupJoinTable(&models.Article{}, "FavoredBy", &models.UserArticleFavor{})
+	if err != nil {
+		fmt.Println("注册 Article 的中间表失败:", err)
+		return
+	}
 
 	err = global.Db.AutoMigrate(
 		&models.User{},
