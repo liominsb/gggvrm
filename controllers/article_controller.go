@@ -7,6 +7,7 @@ import (
 	"gggvrm/global"
 	"gggvrm/models"
 	"gggvrm/utils"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -41,9 +42,25 @@ type ArticleCache struct {
 
 // 辅助函数：清理所有文章分页列表的缓存
 func clearArticlesCache() {
-	keys, err := global.RedisDB.Keys("articles:page:*").Result()
-	if err == nil && len(keys) > 0 {
-		global.RedisDB.Del(keys...)
+	var cursor uint64 = 0
+	var count int64 = 100
+	var keys []string
+	var err error
+	for {
+		keys, cursor, err = global.RedisDB.Scan(cursor, "articles:page:*", count).Result()
+		if err != nil {
+			log.Println(err)
+			break
+		}
+		if len(keys) > 0 {
+			err = global.RedisDB.Del(keys...).Err()
+			if err != nil {
+				log.Println(err)
+			}
+		}
+		if cursor == 0 {
+			break
+		}
 	}
 }
 
