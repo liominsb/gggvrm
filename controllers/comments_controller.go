@@ -58,6 +58,13 @@ func CreateComment(ctx *gin.Context) {
 		return
 	}
 
+	//msgData, _ := json.Marshal(map[string]interface{}{
+	//	"action":     "new_comment",
+	//	"article_id": articleID,
+	//	"user_id":    userid,
+	//})
+	//mq.PublishMessage("article_tasks", msgData)
+
 	ctx.JSON(http.StatusCreated, comment)
 }
 

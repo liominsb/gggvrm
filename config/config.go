@@ -22,6 +22,9 @@ type Config struct {
 	JWT struct {
 		Key string
 	}
+	RabbitMQ struct {
+		Url string
+	}
 }
 
 var Appconf *Config
@@ -43,4 +46,5 @@ func InitConfig() {
 
 	initDB()
 	initRedis()
+	//initRabbitMQ()
 }

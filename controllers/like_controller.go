@@ -17,7 +17,12 @@ func LikeArticle(ctx *gin.Context) {
 
 	likeKey := "article:" + articleID + ":likes"
 
-	if err := global.RedisDB.Exists(likeKey).Err(); errors.Is(err, redis.Nil) {
+	exists, err := global.RedisDB.Exists(likeKey).Result()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "无法检查点赞数"})
+		return
+	}
+	if exists == 0 {
 		var article models.Article
 		// 只查询 likes 字段，提高效率
 		if err := global.Db.Select("likes").Where("id = ?", articleID).First(&article).Error; err != nil {
@@ -35,6 +40,25 @@ func LikeArticle(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "无法增加点赞数"})
 		return
 	}
+
+	//msgData, _ := json.Marshal(map[string]interface{}{
+	//	"action":     "like_article",
+	//	"article_id": articleID,
+	//})
+	//
+	//err = global.RabbitMQChan.Publish(
+	//	"",           // 默认交换机
+	//	"like_tasks", // 你的队列名称
+	//	false,
+	//	false,
+	//	amqp.Publishing{
+	//		ContentType: "application/json",
+	//		Body:        msgData,
+	//	},
+	//)
+	//if err != nil {
+	//	fmt.Printf("【RabbitMQ警告】发送点赞消息失败: %v\n", err)
+	//}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "点赞成功"})
 }
