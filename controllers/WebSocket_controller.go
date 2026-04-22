@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -45,8 +46,19 @@ func HandleConnections(ctx *gin.Context) {
 	}
 	defer ws.Close()
 
-	clients.Store(ws, true) // 将新连接的客户端添加到 clients 中
+	var send = make(chan Message, 256) // 专属的发送通道（信箱）
+
+	clients.Store(ws, send) // 将新连接的客户端添加到 clients 中
 	log.Println("有新用户加入聊天室")
+
+	go writePump(ws, send) // 启动专属写协程，负责给这个客户端发消息
+
+	ws.SetReadDeadline(time.Now().Add(pongWait))
+	ws.SetPongHandler(func(string) error {
+		// 只要收到客户端的 Pong 回复，就重置超时倒计时（续命）
+		ws.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
 
 	// 不断监听该客户端发来的消息
 	for {
@@ -74,17 +86,57 @@ func HandleMessages() {
 		msg := <-broadcast
 
 		// 遍历所有在线的客户端，把消息发给他们
-		clients.Range(func(key, _ interface{}) bool {
-			client := key.(*websocket.Conn)
+		clients.Range(func(key, value interface{}) bool {
+			client := key.(*websocket.Conn) // 获取客户端连接对象
+			send := value.(chan Message)
+			select {
+			case send <- msg: // 成功把消息丢进这个客户端的信箱
 
-			// 将消息编码为 JSON 并发送给客户端
-			err := client.WriteJSON(msg)
-			if err != nil {
-				log.Println("发送消息失败，清理该连接:", err)
-				client.Close()
-				clients.Delete(client)
+			default: // 这个客户端的信箱满了，说明他处理不过来了，直接断开连接
+				close(send)            // 关闭这个客户端的发送通道
+				clients.Delete(client) // 从在线列表中移除这个客户端
+				log.Println("用户离开聊天室")
+				return true // 返回 true 继续遍历下一个
 			}
+
 			return true // 返回 true 继续遍历下一个
 		})
+	}
+}
+
+const (
+	pingPeriod = 30 * time.Second // 多久发一次 Ping
+	pongWait   = 60 * time.Second // 绝对超时时间（超过这个时间没收到响应就踢人）
+)
+
+// 专属写协程：只负责给这一个特定的客户端发消息
+func writePump(client *websocket.Conn, send chan Message) {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		client.Close()
+	}()
+
+	for {
+		select {
+		case msg, ok := <-send: // 1. 有人往他的信箱里塞了聊天消息
+			if !ok {
+				// 通道被关闭，说明要断开连接了
+				client.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+			// 发送聊天消息
+			err := client.WriteJSON(msg)
+			if err != nil {
+				return
+			}
+
+		case <-ticker.C: // 2. 定时器响了，该发心跳 Ping 了
+			// 每次发 Ping 之前，可以设置一个写入超时时间
+			client.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := client.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return // 发送 Ping 失败，直接退出并关闭连接
+			}
+		}
 	}
 }
