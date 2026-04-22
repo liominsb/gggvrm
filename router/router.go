@@ -57,6 +57,8 @@ func SetupRouter() *gin.Engine {
 		api.GET("/article/:id/comments", controllers.GetComments)
 
 		api.POST("/upload", controllers.UploadImage)
+
+		api.GET("/ws", controllers.HandleConnections)
 	}
 	return r
 }

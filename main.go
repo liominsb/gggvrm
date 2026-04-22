@@ -2,6 +2,7 @@ package main
 
 import (
 	"gggvrm/config"
+	"gggvrm/controllers"
 	"gggvrm/router"
 	"gggvrm/utils"
 )
@@ -17,6 +18,8 @@ func main() {
 	}
 
 	go utils.SyncSql() //同步like数据到数据库
+
+	go controllers.HandleMessages()
 
 	err := r.Run(Port)
 	if err != nil {
