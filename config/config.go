@@ -18,6 +18,7 @@ type Config struct {
 		MaxOpenConns int
 		Addr         string
 		Password     string
+		SubSwitch    bool //是否开启redis分布式锁，默认为false
 	}
 	JWT struct {
 		Key string

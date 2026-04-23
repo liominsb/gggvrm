@@ -11,6 +11,5 @@ var (
 	RedisDB      *redis.Client
 	RabbitMQConn *amqp.Connection
 	RabbitMQChan *amqp.Channel
-	Rekg         bool
-	Me           MessageBroker
+	Me           MessageBroker //RedisBroker和LocalBroker的通用接口
 )

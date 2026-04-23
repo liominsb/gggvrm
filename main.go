@@ -22,7 +22,7 @@ func main() {
 
 	go controllers.HandleMessages()
 
-	if global.Rekg {
+	if config.Appconf.Database.SubSwitch {
 		global.Me = global.NewRedisBroker()
 	} else {
 		global.Me = global.NewLocalBroker()
