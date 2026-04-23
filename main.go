@@ -3,6 +3,7 @@ package main
 import (
 	"gggvrm/config"
 	"gggvrm/controllers"
+	"gggvrm/global"
 	"gggvrm/router"
 	"gggvrm/utils"
 )
@@ -20,6 +21,12 @@ func main() {
 	go utils.SyncSql() //同步like数据到数据库
 
 	go controllers.HandleMessages()
+
+	if global.Rekg {
+		global.Me = global.NewRedisBroker()
+	} else {
+		global.Me = global.NewLocalBroker()
+	}
 
 	err := r.Run(Port)
 	if err != nil {

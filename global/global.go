@@ -11,4 +11,6 @@ var (
 	RedisDB      *redis.Client
 	RabbitMQConn *amqp.Connection
 	RabbitMQChan *amqp.Channel
+	Rekg         bool
+	Me           MessageBroker
 )

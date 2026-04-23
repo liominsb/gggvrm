@@ -1,26 +1,18 @@
 package controllers
 
 import (
+	"gggvrm/global"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
 
-type Message struct {
-	Username string `json:"username"`
-	Content  string `json:"content"`
-}
-
-// 全局变量维护聊天室状态
-var (
-	// 用于保存所有连接的客户端（使用 sync.Map 保证并发安全）
-	clients sync.Map
-	// 广播通道：当有用户发送消息时，把消息丢进这个通道
-	broadcast = make(chan Message)
+const (
+	pingPeriod = 30 * time.Second // 多久发一次 Ping
+	pongWait   = 60 * time.Second // 绝对超时时间（超过这个时间没收到响应就踢人）
 )
 
 // 定义 WebSocket 升级器
@@ -46,9 +38,11 @@ func HandleConnections(ctx *gin.Context) {
 	}
 	defer ws.Close()
 
-	var send = make(chan Message, 256) // 专属的发送通道（信箱）
+	var send = make(chan global.Message, 256) // 专属的发送通道（信箱）
 
-	clients.Store(ws, send) // 将新连接的客户端添加到 clients 中
+	// 将新连接的客户端添加到 全局订阅列表中，这样当有消息广播时就能收到
+	global.Me.Subscribe(send)
+
 	log.Println("有新用户加入聊天室")
 
 	go writePump(ws, send) // 启动专属写协程，负责给这个客户端发消息
@@ -62,55 +56,30 @@ func HandleConnections(ctx *gin.Context) {
 
 	// 不断监听该客户端发来的消息
 	for {
-		var msg Message
+		var msg global.Message
 		// 读取客户端发来的 JSON 数据并解析到 msg 结构体
 		err := ws.ReadJSON(&msg)
 		if err != nil {
 			log.Println("读取消息错误或用户离开:", err)
 			// 如果读取出错（通常是用户断开连接），从 map 中移除该连接并结束循环
-			clients.Delete(ws)
+			global.Me.Unsubscribe(send)
 			break
 		}
 
 		msg.Username = val.(string)
 
 		// 把收到的消息塞进广播通道
-		broadcast <- msg
+		global.Me.Publish(msg)
 	}
 }
 
 // 监听广播通道，把消息推送给所有人
 func HandleMessages() {
-	for {
-		// 从通道中取出消息（如果通道里没消息，这里会阻塞等待）
-		msg := <-broadcast
-
-		// 遍历所有在线的客户端，把消息发给他们
-		clients.Range(func(key, value interface{}) bool {
-			client := key.(*websocket.Conn) // 获取客户端连接对象
-			send := value.(chan Message)
-			select {
-			case send <- msg: // 成功把消息丢进这个客户端的信箱
-
-			default: // 这个客户端的信箱满了，说明他处理不过来了，直接断开连接
-				close(send)            // 关闭这个客户端的发送通道
-				clients.Delete(client) // 从在线列表中移除这个客户端
-				log.Println("用户离开聊天室")
-				return true // 返回 true 继续遍历下一个
-			}
-
-			return true // 返回 true 继续遍历下一个
-		})
-	}
+	global.Me.Start()
 }
 
-const (
-	pingPeriod = 30 * time.Second // 多久发一次 Ping
-	pongWait   = 60 * time.Second // 绝对超时时间（超过这个时间没收到响应就踢人）
-)
-
 // 专属写协程：只负责给这一个特定的客户端发消息
-func writePump(client *websocket.Conn, send chan Message) {
+func writePump(client *websocket.Conn, send chan global.Message) {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
