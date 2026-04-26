@@ -7,6 +7,7 @@ import (
 	"gggvrm/config"
 	"gggvrm/global"
 	"gggvrm/models"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 	"time"
@@ -65,8 +66,8 @@ func Setcache(key string, value interface{}) error {
 	if err != nil {
 		return err
 	}
-
-	if err := global.RedisDB.Set(key, valueJSON, 10*time.Minute).Err(); err != nil {
+	a := time.Duration(rand.IntN(5) + 10)
+	if err := global.RedisDB.Set(key, valueJSON, a*time.Minute).Err(); err != nil {
 		return err
 	}
 
