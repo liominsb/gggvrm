@@ -44,7 +44,7 @@ func (l *LocalBroker) Subscribe(subscriber chan Message) {
 func (l *LocalBroker) Unsubscribe(subscriber chan Message) {
 	_, ok := l.subscribers.LoadAndDelete(subscriber)
 	if ok {
-		close(subscriber) // 负责任地销毁信箱
+		close(subscriber)
 	} else {
 		log.Println("尝试注销一个不存在的订阅者")
 	}
@@ -97,7 +97,7 @@ func (r *RedisBroker) Subscribe(subscriber chan Message) {
 func (r *RedisBroker) Unsubscribe(subscriber chan Message) {
 	_, ok := r.subscribers.LoadAndDelete(subscriber)
 	if ok {
-		close(subscriber) // 负责任地销毁信箱
+		close(subscriber)
 	} else {
 		log.Println("尝试注销一个不存在的订阅者")
 	}
