@@ -30,6 +30,7 @@ func GenerateJWT(id uint) (string, error) { //生成JWT
 	return "Bearer " + signedToken, err
 }
 
+// 检查密码
 func CheckPassword(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
@@ -74,6 +75,7 @@ func Setcache(key string, value interface{}) error {
 	return nil
 }
 
+// 同步点赞数和浏览数到数据库
 func SyncSql() {
 	for {
 		time.Sleep(1 * time.Minute)
