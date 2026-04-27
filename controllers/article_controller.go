@@ -379,13 +379,21 @@ func DelArticle(ctx *gin.Context) {
 		return
 	}
 
+	//第一次删除缓存
+	clearArticlesCache()
+	global.RedisDB.Del(fmt.Sprintf("article:detail:%s", idA))
+	global.RedisDB.Del(fmt.Sprintf("article:%s:comments", idA))
+	global.RedisDB.Del(fmt.Sprintf("article:%s:likes", idA))
+
 	if err := global.Db.Delete(&article).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	clearArticlesCache()
+	time.Sleep(100 * time.Millisecond) //延时
 
+	//第二次删除缓存
+	clearArticlesCache()
 	global.RedisDB.Del(fmt.Sprintf("article:detail:%s", idA))
 	global.RedisDB.Del(fmt.Sprintf("article:%s:comments", idA))
 	global.RedisDB.Del(fmt.Sprintf("article:%s:likes", idA))
@@ -451,6 +459,9 @@ func UpdateArticle(ctx *gin.Context) {
 			}
 		}
 	}
+	//第一次删除缓存
+	clearArticlesCache()
+	global.RedisDB.Del(fmt.Sprintf("article:detail:%s", articleID))
 
 	updateData := map[string]interface{}{
 		"title":       input.Title,
@@ -465,7 +476,9 @@ func UpdateArticle(ctx *gin.Context) {
 		return
 	} // 更新后重新查询一次，获取完整的文章数据（包括预加载的分类和标签）
 
-	// 清理缓存（重要：文章修改后，详情缓存和列表分页缓存都会失效）
+	time.Sleep(100 * time.Millisecond) //延时
+
+	// //第二次删除缓存（重要：文章修改后，详情缓存和列表分页缓存都会失效）
 	clearArticlesCache()
 	global.RedisDB.Del(fmt.Sprintf("article:detail:%s", articleID))
 

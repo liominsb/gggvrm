@@ -9,6 +9,7 @@ import (
 	"gggvrm/utils"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -24,6 +25,8 @@ func CreateComment(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
 		return
 	}
+
+	cacheKey := fmt.Sprintf("article:%d:comments", articleID)
 
 	id, ok := ctx.Get("ID")
 	if !ok {
@@ -48,11 +51,20 @@ func CreateComment(ctx *gin.Context) {
 		Content:   input.Content,
 	}
 
+	//第一次删除缓存
+	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	if err := global.Db.Create(&comment).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	cacheKey := fmt.Sprintf("article:%d:comments", articleID)
+
+	time.Sleep(100 * time.Millisecond) //延时
+
+	//第二次删除缓存
 	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -95,10 +107,16 @@ func DelComment(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	cacheKey := fmt.Sprintf("article:%d:comments", article.ID)
 
 	if userid != comment.UserID && userid != article.UserID {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
+	}
+
+	//第一次删除缓存
+	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
+		fmt.Printf("【Redis警告】清理文章 %d 缓存失败: %v\n", comment.ArticleID, err)
 	}
 
 	if err := global.Db.Unscoped().Delete(&comment).Error; err != nil {
@@ -106,7 +124,7 @@ func DelComment(ctx *gin.Context) {
 		return
 	}
 
-	cacheKey := fmt.Sprintf("article:%d:comments", article.ID)
+	//第二次删除缓存
 	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
 		fmt.Printf("【Redis警告】清理文章 %d 缓存失败: %v\n", comment.ArticleID, err)
 	}

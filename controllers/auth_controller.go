@@ -9,6 +9,7 @@ import (
 	"gggvrm/utils"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -172,6 +173,7 @@ func GetUserProfileById(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"user": user})
 }
 
+// 更改密码
 func Changepassword(ctx *gin.Context) {
 	id, ok := ctx.Get("ID")
 	if !ok {
@@ -211,12 +213,20 @@ func Changepassword(ctx *gin.Context) {
 		return
 	}
 
+	//第一次删除缓存
+	if err := global.RedisDB.Del(fmt.Sprintf("USER:%d", id.(uint))).Err(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	user.Password = hashedPwd
 	if err := global.Db.Model(&user).Update("password", user.Password).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	time.Sleep(100 * time.Millisecond) //延时
+	//第二次删除缓存
 	if err := global.RedisDB.Del(fmt.Sprintf("USER:%d", id.(uint))).Err(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
