@@ -24,12 +24,12 @@ type Article struct {
 	Likes    int       `json:"likes" gorm:"default:0"`     //点赞数，默认为0
 	Views    int       `json:"views" gorm:"default:0"`     //浏览数，默认为0
 	User     *User     `json:"user" gorm:"foreignKey:UserID"`
-	UserID   uint      `json:"user_id" binding:"required"`
+	UserID   uint      `json:"user_id" binding:"required" gorm:"index_user_id"`
 	CoverImg string    `json:"cover_img"`                                                         //【新增】封面图的 URL
 	Comments []Comment `json:"comments" gorm:"foreignKey:ArticleID;constraint:OnDelete:CASCADE;"` //评论
 
-	CategoryID uint      `json:"category_id"`                           // 记录分类的 ID
-	Category   *Category `json:"category" gorm:"foreignKey:CategoryID"` //类别
+	CategoryID uint      `json:"category_id" gorm:"index:idx_category_id"` // 记录分类的 ID
+	Category   *Category `json:"category" gorm:"foreignKey:CategoryID"`    //类别
 
 	Tags []Tag `json:"tags" gorm:"many2many:article_tags;"`
 
@@ -44,7 +44,7 @@ type ArticleTags struct {
 
 type Comment struct {
 	gorm.Model
-	ArticleID uint   `json:"article_id" binding:"required"` // 外键，关联到 Article.ID
-	UserID    uint   `json:"user_id" binding:"required"`    // 评论者 ID
-	Content   string `json:"content" binding:"required"`    // 评论具体内容
+	ArticleID uint   `json:"article_id" binding:"required" gorm:"index:idx_article_id"` // 外键，关联到 Article.ID
+	UserID    uint   `json:"user_id" binding:"required" gorm:"index:idx_comment_user"`  // 评论者 ID
+	Content   string `json:"content" binding:"required"`                                // 评论具体内容
 }
