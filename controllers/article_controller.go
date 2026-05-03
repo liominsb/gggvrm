@@ -191,6 +191,14 @@ func GetArticles(ctx *gin.Context) {
 		return
 	}
 
+	// 即使结果为空，也缓存（防止缓存穿透）
+	if total == 0 {
+		cacheObj := ArticleCache{Total: 0, Data: []ArticleListResponse{}}
+		utils.Setcache(dynamicCacheKey, cacheObj) // 缓存空结果，设置较短过期时间
+		ctx.JSON(http.StatusOK, gin.H{"data": []ArticleListResponse{}, "total": 0})
+		return
+	}
+
 	var articles []models.Article
 
 	// 分页计算
@@ -234,12 +242,14 @@ func GetArticles(ctx *gin.Context) {
 		fmt.Printf("【Redis警告】缓存文章列表失败: %v\n", err)
 	}
 
+	totalPages := (total + int64(pageSize) - 1) / int64(pageSize) //总页数，(21+5-1)/5=5
 	//返回给前端
 	ctx.JSON(http.StatusOK, gin.H{
-		"data":      response,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
+		"data":        response,
+		"total":       total,
+		"page":        page,
+		"page_size":   pageSize,
+		"total_pages": totalPages,
 	})
 }
 
@@ -483,4 +493,35 @@ func UpdateArticle(ctx *gin.Context) {
 	global.RedisDB.Del(fmt.Sprintf("article:detail:%s", articleID))
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "更新成功", "article": article})
+}
+
+// 获取ID小于cursor的limit个Article
+// 请求：GET /articles?cursor=12345&limit=10
+// 返回：最后一条的 ID 作为下次请求的 cursor
+func GetArticlesByCursor(ctx *gin.Context) {
+	cursorStr := ctx.DefaultQuery("cursor", "0")
+	limitStr := ctx.DefaultQuery("limit", "10")
+
+	cursor, _ := strconv.ParseUint(cursorStr, 10, 64)
+	limit, _ := strconv.Atoi(limitStr)
+
+	var articles []models.Article
+	// 使用 WHERE id < cursor 代替 OFFSET
+	global.Db.Where("id < ?", cursor).
+		Order("id desc").
+		Limit(limit + 1). // 多查一条判断是否有下一页
+		Find(&articles)
+
+	hasMore := len(articles) > limit
+	if hasMore {
+		articles = articles[:limit] // 去掉多查的那条
+	}
+
+	nextCursor := articles[len(articles)-1].ID
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data":        articles,
+		"next_cursor": nextCursor,
+		"has_more":    hasMore,
+	})
 }
