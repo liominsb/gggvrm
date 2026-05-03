@@ -194,7 +194,10 @@ func GetArticles(ctx *gin.Context) {
 	// 即使结果为空，也缓存（防止缓存穿透）
 	if total == 0 {
 		cacheObj := ArticleCache{Total: 0, Data: []ArticleListResponse{}}
-		utils.Setcache(dynamicCacheKey, cacheObj) // 缓存空结果，设置较短过期时间
+		err := utils.Setcache(dynamicCacheKey, cacheObj)
+		if err != nil {
+			log.Println("【Redis警告】缓存空结果失败:", err)
+		} // 缓存空结果，设置较短过期时间
 		ctx.JSON(http.StatusOK, gin.H{"data": []ArticleListResponse{}, "total": 0})
 		return
 	}
