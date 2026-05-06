@@ -7,6 +7,7 @@ import (
 	"gggvrm/global"
 	"gggvrm/models"
 	"gggvrm/utils"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -62,13 +63,15 @@ func CreateComment(ctx *gin.Context) {
 		return
 	}
 
-	time.Sleep(100 * time.Millisecond) //延时
+	go func() {
+		time.Sleep(100 * time.Millisecond) //延时
 
-	//第二次删除缓存
-	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+		//第二次删除缓存
+		if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
+			log.Printf("【警告】延时双删失败 cacheKey: %d, err: %v\n", cacheKey, err)
+			return
+		}
+	}()
 
 	//msgData, _ := json.Marshal(map[string]interface{}{
 	//	"action":     "new_comment",
@@ -124,10 +127,13 @@ func DelComment(ctx *gin.Context) {
 		return
 	}
 
-	//第二次删除缓存
-	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
-		fmt.Printf("【Redis警告】清理文章 %d 缓存失败: %v\n", comment.ArticleID, err)
-	}
+	go func() {
+		time.Sleep(100 * time.Millisecond) //延时
+		//第二次删除缓存
+		if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
+			fmt.Printf("【Redis警告】清理文章 %d 缓存失败: %v\n", comment.ArticleID, err)
+		}
+	}()
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }

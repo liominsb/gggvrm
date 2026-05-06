@@ -7,6 +7,7 @@ import (
 	"gggvrm/global"
 	"gggvrm/models"
 	"gggvrm/utils"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -225,12 +226,13 @@ func Changepassword(ctx *gin.Context) {
 		return
 	}
 
-	time.Sleep(100 * time.Millisecond) //延时
-	//第二次删除缓存
-	if err := global.RedisDB.Del(fmt.Sprintf("USER:%d", id.(uint))).Err(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	go func() {
+		time.Sleep(100 * time.Millisecond) //延时
+		//第二次删除缓存
+		if err := global.RedisDB.Del(fmt.Sprintf("USER:%d", id.(uint))).Err(); err != nil {
+			log.Printf("【警告】延时双删失败 UserID: %d, err: %v\n", id.(uint), err)
+		}
+	}()
 
 	user.Password = ""
 	ctx.JSON(http.StatusOK, gin.H{"user": user})
