@@ -1,6 +1,7 @@
 package utils // Package utils 实用性
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -61,14 +62,14 @@ func ParseJWT(tokenString string) (uint, error) { //
 }
 
 // Setcache 设置缓存
-func Setcache(key string, value interface{}) error {
+func Setcache(ctx context.Context, key string, value interface{}) error {
 	valueJSON, err := json.Marshal(value)
 
 	if err != nil {
 		return err
 	}
 	a := time.Duration(rand.IntN(5) + 10)
-	if err := global.RedisDB.Set(key, valueJSON, a*time.Minute).Err(); err != nil {
+	if err := global.RedisDB.Set(ctx, key, valueJSON, a*time.Minute).Err(); err != nil {
 		return err
 	}
 
@@ -76,7 +77,7 @@ func Setcache(key string, value interface{}) error {
 }
 
 // 同步点赞数和浏览数到数据库
-func SyncSql() {
+func SyncSql(ctx context.Context) {
 	for {
 		time.Sleep(1 * time.Minute)
 		var cursor uint64 // 初始游标为 0
@@ -84,7 +85,7 @@ func SyncSql() {
 		var keys []string
 		var err error
 		for {
-			keys, cursor, err = global.RedisDB.Scan(cursor, "article:*:likes", 100).Result()
+			keys, cursor, err = global.RedisDB.Scan(ctx, cursor, "article:*:likes", 100).Result()
 			if err != nil {
 				fmt.Println("获取 Redis Keys 失败:", err)
 				break
@@ -102,7 +103,7 @@ func SyncSql() {
 					continue
 				}
 
-				likesStr, err := global.RedisDB.Get(key).Result()
+				likesStr, err := global.RedisDB.Get(ctx, key).Result()
 				if err != nil {
 					continue
 				}
@@ -124,7 +125,7 @@ func SyncSql() {
 		}
 
 		for {
-			keys, cursor1, err = global.RedisDB.Scan(cursor1, "article:*:views", 100).Result()
+			keys, cursor1, err = global.RedisDB.Scan(ctx, cursor1, "article:*:views", 100).Result()
 			if err != nil {
 				fmt.Println("获取 Redis Keys 失败:", err)
 				break
@@ -142,7 +143,7 @@ func SyncSql() {
 					continue
 				}
 
-				viewsStr, err := global.RedisDB.Get(key).Result()
+				viewsStr, err := global.RedisDB.Get(ctx, key).Result()
 				if err != nil {
 					continue
 				}
@@ -164,4 +165,11 @@ func SyncSql() {
 
 	}
 
+}
+
+// RandomExpiration 传入一个基础过期时间，返回增加 0~59 秒随机抖动后的时间
+func RandomExpiration(baseTime time.Duration) time.Duration {
+	// 使用 rand.Intn(60) 生成 0-59 的随机数，更加标准和易读
+	jitter := time.Duration(rand.IntN(60)) * time.Second
+	return baseTime + jitter
 }

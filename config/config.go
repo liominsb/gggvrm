@@ -1,7 +1,9 @@
 package config
 
 import (
+	"context"
 	"log"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -46,6 +48,9 @@ func InitConfig() {
 	}
 
 	initDB()
-	initRedis()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	initRedis(ctx)
 	//initRabbitMQ()
 }

@@ -1,92 +1,49 @@
 package controllers
 
 import (
-	"errors"
-	"gggvrm/global"
-	"gggvrm/models"
+	"gggvrm/service"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis"
 )
 
-// LikeArticle 赞成文章
-func LikeArticle(ctx *gin.Context) {
-	articleID := ctx.Param("id")
-
-	likeKey := "article:" + articleID + ":likes"
-
-	exists, err := global.RedisDB.Exists(likeKey).Result()
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "无法检查点赞数"})
-		return
-	}
-	if exists == 0 {
-		var article models.Article
-		// 只查询 likes 字段，提高效率
-		if err := global.Db.Select("likes").Where("id = ?", articleID).First(&article).Error; err != nil {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "文章不存在"})
-			return
-		}
-
-		if err := global.RedisDB.SetNX(likeKey, article.Likes, 0).Err(); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "无法初始化点赞数"})
-			return
-		}
-	}
-
-	if err := global.RedisDB.Incr(likeKey).Err(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "无法增加点赞数"})
-		return
-	}
-
-	//msgData, _ := json.Marshal(map[string]interface{}{
-	//	"action":     "like_article",
-	//	"article_id": articleID,
-	//})
-	//
-	//err = global.RabbitMQChan.Publish(
-	//	"",           // 默认交换机
-	//	"like_tasks", // 你的队列名称
-	//	false,
-	//	false,
-	//	amqp.Publishing{
-	//		ContentType: "application/json",
-	//		Body:        msgData,
-	//	},
-	//)
-	//if err != nil {
-	//	fmt.Printf("【RabbitMQ警告】发送点赞消息失败: %v\n", err)
-	//}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "点赞成功"})
+// 定义一个 Controller 结构体，用于持有依赖
+type LikeController struct {
+	likeService service.LikeService
 }
 
-func GetArticlelikes(ctx *gin.Context) {
+// 构造函数：在外部（比如 main.go 的路由配置里）初始化时传入依赖
+func NewLikeController(likeService service.LikeService) *LikeController {
+	return &LikeController{likeService: likeService}
+}
+
+// LikeArticle 赞成文章
+func (r *LikeController) LikeArticle(ctx *gin.Context) {
 	articleID := ctx.Param("id")
-
-	likeKey := "article:" + articleID + ":likes"
-
-	likes, err := global.RedisDB.Get(likeKey).Result()
-
-	if errors.Is(err, redis.Nil) {
-		var article models.Article
-		// 只查询 likes 字段，提高效率
-		if err := global.Db.Select("likes").Where("id = ?", articleID).First(&article).Error; err != nil {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "文章不存在"})
-			return
+	likes, err := r.likeService.LikeArticle(ctx, articleID)
+	if err != nil {
+		// 粗略根据错误信息判断状态码（严谨的做法是在 Service 返回自定义 Error 结构体包含 Code）
+		if err.Error() == "文章不存在" {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
-
-		if err := global.RedisDB.SetNX(likeKey, article.Likes, 0).Err(); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "无法初始化点赞数"})
-			return
-		}
-		likes = strconv.Itoa(article.Likes)
-	} else if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "无法获取点赞数"})
 		return
 	}
+	ctx.JSON(http.StatusOK, gin.H{"message": "点赞成功: " + likes})
+}
 
+func (r *LikeController) GetArticlelikes(ctx *gin.Context) {
+	articleID := ctx.Param("id")
+	likes, err := r.likeService.GetArticleLikes(ctx, articleID)
+	if err != nil {
+		// 粗略根据错误信息判断状态码（严谨的做法是在 Service 返回自定义 Error 结构体包含 Code）
+		if err.Error() == "文章不存在" {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
 	ctx.JSON(http.StatusOK, gin.H{"likes": likes})
 }

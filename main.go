@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"gggvrm/config"
 	"gggvrm/controllers"
 	"gggvrm/global"
@@ -18,7 +19,9 @@ func main() {
 		Port = ":8080"
 	}
 
-	go utils.SyncSql() //同步like数据到数据库
+	var ctx context.Context = context.Background()
+
+	go utils.SyncSql(ctx) //同步like数据到数据库
 
 	go controllers.HandleMessages()
 

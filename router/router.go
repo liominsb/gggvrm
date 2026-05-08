@@ -2,7 +2,10 @@ package router //路由
 
 import (
 	"gggvrm/controllers"
+	"gggvrm/global"
 	"gggvrm/middlewares"
+	"gggvrm/repository"
+	"gggvrm/service"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -12,6 +15,14 @@ import (
 // SetupRouter 设置路由
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
+
+	// 2. 依赖注入装配 (像乐高积木一样一层层组装)
+	likeRepo := repository.NewLikeRepository(global.Db)                      // Repo 层只管自己
+	likeService := service.NewLikeService(likeRepo, global.RedisDB)          // Service 层拿到 Repo 和 Redis
+	likeCtrl := controllers.NewLikeController(likeService)                   // Controller 拿到 Service
+	commentRepo := repository.NewCommentRepository(global.Db)                // Repo 层只管自己
+	commentService := service.NewCommentService(commentRepo, global.RedisDB) // Service 层拿到 Repo 和 Redis
+	commentCtrl := controllers.NewcCommentController(commentService)         // Controller 拿到 Service
 
 	r.Use(cors.New(cors.Config{
 		// 允许哪些域来访问我？这里配置了前端的地址
@@ -50,10 +61,10 @@ func SetupRouter() *gin.Engine {
 		api.PUT("/article/:id", controllers.UpdateArticle)
 		api.GET("/articles/cursor", controllers.GetArticlesByCursor)
 
-		api.POST("/article/:id/like", controllers.LikeArticle)
-		api.GET("/article/:id/like", controllers.GetArticlelikes)
+		api.POST("/article/:id/like", likeCtrl.LikeArticle)
+		api.GET("/article/:id/like", likeCtrl.GetArticlelikes)
 
-		api.POST("/article/:id/comment", controllers.CreateComment)
+		api.POST("/article/:id/comment", commentCtrl.CreateComment)
 		api.DELETE("/comment/:id", controllers.DelComment)
 		api.GET("/article/:id/comments", controllers.GetComments)
 

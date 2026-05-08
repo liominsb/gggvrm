@@ -6,18 +6,27 @@ import (
 	"fmt"
 	"gggvrm/global"
 	"gggvrm/models"
+	"gggvrm/service"
 	"gggvrm/utils"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
+type CommentController struct {
+	commentService service.CommentService
+}
+
+// 构造函数：在外部（比如 main.go 的路由配置里）初始化时传入依赖
+func NewcCommentController(commentService service.CommentService) *CommentController {
+	return &CommentController{commentService: commentService}
+}
+
 // CreateComments 创建评论
-func CreateComment(ctx *gin.Context) {
+func (r *CommentController) CreateComment(ctx *gin.Context) {
 	articleIDstring := ctx.Param("id")
 
 	articleID, err := strconv.ParseUint(articleIDstring, 10, 32)
@@ -52,26 +61,10 @@ func CreateComment(ctx *gin.Context) {
 		Content:   input.Content,
 	}
 
-	//第一次删除缓存
-	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	err = r.commentService.CreateComment(ctx, cacheKey, &comment)
+	if err != nil {
 		return
 	}
-
-	if err := global.Db.Create(&comment).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	go func() {
-		time.Sleep(100 * time.Millisecond) //延时
-
-		//第二次删除缓存
-		if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
-			log.Printf("【警告】延时双删失败 cacheKey: %d, err: %v\n", cacheKey, err)
-			return
-		}
-	}()
 
 	//msgData, _ := json.Marshal(map[string]interface{}{
 	//	"action":     "new_comment",

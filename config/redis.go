@@ -1,13 +1,14 @@
 package config
 
 import (
+	"context"
 	"gggvrm/global"
 	"log"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
-func initRedis() {
+func initRedis(ctx context.Context) {
 	RedisCilnet := redis.NewClient(&redis.Options{
 		Addr:         Appconf.Database.Addr,
 		Password:     Appconf.Database.Password, // no password set
@@ -16,7 +17,7 @@ func initRedis() {
 		PoolSize:     10,                        //设置连接池大小为10
 	})
 
-	_, err := RedisCilnet.Ping().Result()
+	_, err := RedisCilnet.Ping(ctx).Result()
 	if err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 // Register 注册
