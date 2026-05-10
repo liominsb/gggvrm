@@ -1,4 +1,4 @@
-package router //路由
+package router // Package router 路由
 
 import (
 	"gggvrm/controllers"
@@ -65,8 +65,8 @@ func SetupRouter() *gin.Engine {
 		api.GET("/article/:id/like", likeCtrl.GetArticlelikes)
 
 		api.POST("/article/:id/comment", commentCtrl.CreateComment)
-		api.DELETE("/comment/:id", controllers.DelComment)
-		api.GET("/article/:id/comments", controllers.GetComments)
+		api.DELETE("/comment/:id", commentCtrl.DelComment)
+		api.GET("/article/:id/comments", commentCtrl.GetComments)
 
 		api.POST("/upload", controllers.UploadImage)
 

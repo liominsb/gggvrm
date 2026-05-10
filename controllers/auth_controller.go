@@ -96,7 +96,7 @@ func Getmyuser(ctx *gin.Context) {
 
 	var user models.User
 
-	data, err := global.RedisDB.Get(fmt.Sprintf("USER:%d", id.(uint))).Result()
+	data, err := global.RedisDB.Get(ctx.Request.Context(), fmt.Sprintf("USER:%d", id.(uint))).Result()
 
 	if errors.Is(err, redis.Nil) {
 		if err := global.Db.Where("id = ?", id).First(&user).Error; err != nil {
@@ -104,7 +104,7 @@ func Getmyuser(ctx *gin.Context) {
 			return
 		}
 
-		if err := utils.Setcache(fmt.Sprintf("USER:%d", id.(uint)), user); err != nil {
+		if err := utils.Setcache(ctx.Request.Context(), fmt.Sprintf("USER:%d", id.(uint)), user); err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 
@@ -140,7 +140,7 @@ func GetUserProfileById(ctx *gin.Context) {
 	// 为了和当前用户自己的缓存区分开，可以加个前缀或直接用一样的
 	cacheKey := fmt.Sprintf("USER:%d", targetUserID)
 
-	data, err := global.RedisDB.Get(cacheKey).Result()
+	data, err := global.RedisDB.Get(ctx.Request.Context(), cacheKey).Result()
 
 	// 2. 缓存未命中，去数据库查
 	if errors.Is(err, redis.Nil) {
@@ -153,7 +153,7 @@ func GetUserProfileById(ctx *gin.Context) {
 		// 绝对不能把密码暴露出去
 		user.Password = ""
 
-		if err := utils.Setcache(cacheKey, user); err != nil {
+		if err := utils.Setcache(ctx.Request.Context(), cacheKey, user); err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		ctx.JSON(http.StatusOK, gin.H{"user": user})
@@ -215,7 +215,7 @@ func Changepassword(ctx *gin.Context) {
 	}
 
 	//第一次删除缓存
-	if err := global.RedisDB.Del(fmt.Sprintf("USER:%d", id.(uint))).Err(); err != nil {
+	if err := global.RedisDB.Del(ctx.Request.Context(), fmt.Sprintf("USER:%d", id.(uint))).Err(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -229,7 +229,7 @@ func Changepassword(ctx *gin.Context) {
 	go func() {
 		time.Sleep(100 * time.Millisecond) //延时
 		//第二次删除缓存
-		if err := global.RedisDB.Del(fmt.Sprintf("USER:%d", id.(uint))).Err(); err != nil {
+		if err := global.RedisDB.Del(ctx.Request.Context(), fmt.Sprintf("USER:%d", id.(uint))).Err(); err != nil {
 			log.Printf("【警告】延时双删失败 UserID: %d, err: %v\n", id.(uint), err)
 		}
 	}()

@@ -1,19 +1,14 @@
 package controllers
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"gggvrm/global"
 	"gggvrm/models"
 	"gggvrm/service"
-	"gggvrm/utils"
+	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 )
 
 type CommentController struct {
@@ -76,7 +71,7 @@ func (r *CommentController) CreateComment(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, comment)
 }
 
-func DelComment(ctx *gin.Context) {
+func (r *CommentController) DelComment(ctx *gin.Context) {
 	commentIDStr := ctx.Param("id")
 
 	commentID, err := strconv.ParseUint(commentIDStr, 10, 32)
@@ -92,77 +87,30 @@ func DelComment(ctx *gin.Context) {
 	}
 	userid := id.(uint)
 
-	comment := models.Comment{}
-	if err := global.Db.Where("id = ?", commentID).First(&comment).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	article := models.Article{}
-	if err := global.Db.Where("id = ?", comment.ArticleID).First(&article).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	cacheKey := fmt.Sprintf("article:%d:comments", article.ID)
-
-	if userid != comment.UserID && userid != article.UserID {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
-		return
-	}
-
-	//第一次删除缓存
-	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
-		fmt.Printf("【Redis警告】清理文章 %d 缓存失败: %v\n", comment.ArticleID, err)
-	}
-
-	if err := global.Db.Unscoped().Delete(&comment).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	go func() {
-		time.Sleep(100 * time.Millisecond) //延时
-		//第二次删除缓存
-		if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
-			fmt.Printf("【Redis警告】清理文章 %d 缓存失败: %v\n", comment.ArticleID, err)
-		}
-	}()
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "删除成功"})
-}
-
-// GetComments 获取单个文章的所有评论
-func GetComments(ctx *gin.Context) {
-
-	articleIDstring := ctx.Param("id")
-	articleID, err := strconv.ParseUint(articleIDstring, 10, 32)
-	cacheKey := fmt.Sprintf("article:%d:comments", articleID)
-
-	cacheData, err := global.RedisDB.Get(cacheKey).Result()
-
-	if errors.Is(err, redis.Nil) {
-		var comments []models.Comment
-
-		if err := global.Db.Where("article_id = ?", articleID).Find(&comments).Error; err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		if err := utils.Setcache(cacheKey, comments); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
-		ctx.JSON(http.StatusOK, comments)
-		return
-	}
+	err = r.commentService.DelComment(ctx, commentID, userid)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	ctx.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+}
 
-	var comments []models.Comment
-	if err := json.Unmarshal([]byte(cacheData), &comments); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// GetComments 获取单个文章的所有评论
+func (r *CommentController) GetComments(ctx *gin.Context) {
+
+	articleIDstring := ctx.Param("id")
+	articleID, err := strconv.ParseUint(articleIDstring, 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
 		return
 	}
+
+	comments, err := r.commentService.GetComments(ctx, uint(articleID))
+	if err != nil {
+		log.Println("获取评论失败:", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get comments"})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, comments)
 }

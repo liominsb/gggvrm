@@ -16,14 +16,14 @@ import (
 
 type User struct {
 	gorm.Model
-	Username  string    `gorm:"uniqueIndex" json:"username" binding:"required"`
+	Username  string    `gorm:"size:50;uniqueIndex" json:"username" binding:"required"`
 	Password  string    `json:"-"`
 	Articles  []Article `gorm:"foreignKey:UserID" json:"articles"`
 	Favorites []Article `gorm:"many2many:user_article_favor;"`
 }
 
 type UserArticleFavor struct {
-	UserId    uint `gorm:"primaryKey"`
+	UserID    uint `gorm:"primaryKey"`
 	ArticleID uint `gorm:"primaryKey"`
 	CreatedAt time.Time
 }

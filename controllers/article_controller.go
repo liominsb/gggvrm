@@ -1,6 +1,7 @@
 package controllers // Package controllers 控制器
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,19 +42,19 @@ type ArticleCache struct {
 }
 
 // 辅助函数：清理所有文章分页列表的缓存
-func clearArticlesCache() {
+func clearArticlesCache(ctx context.Context) {
 	var cursor uint64 = 0
 	var count int64 = 100
 	var keys []string
 	var err error
 	for {
-		keys, cursor, err = global.RedisDB.Scan(cursor, "articles:page:*", count).Result()
+		keys, cursor, err = global.RedisDB.Scan(ctx, cursor, "articles:page:*", count).Result()
 		if err != nil {
 			log.Println(err)
 			break
 		}
 		if len(keys) > 0 {
-			err = global.RedisDB.Del(keys...).Err()
+			err = global.RedisDB.Del(ctx, keys...).Err()
 			if err != nil {
 				log.Println(err)
 			}
@@ -113,7 +114,7 @@ func CreateArticle(ctx *gin.Context) {
 		return
 	}
 
-	clearArticlesCache()
+	clearArticlesCache(ctx.Request.Context())
 
 	ctx.JSON(http.StatusCreated, article)
 }
@@ -146,7 +147,7 @@ func GetArticles(ctx *gin.Context) {
 
 	dynamicCacheKey := fmt.Sprintf("articles:page:%d:size:%d:cat:%d:tag:%d", page, pageSize, categoryID, tagID)
 
-	cacheData, err := global.RedisDB.Get(dynamicCacheKey).Result()
+	cacheData, err := global.RedisDB.Get(ctx.Request.Context(), dynamicCacheKey).Result()
 	if err == nil {
 		var cacheObj ArticleCache
 		if err := json.Unmarshal([]byte(cacheData), &cacheObj); err != nil {
@@ -194,7 +195,7 @@ func GetArticles(ctx *gin.Context) {
 	// 即使结果为空，也缓存（防止缓存穿透）
 	if total == 0 {
 		cacheObj := ArticleCache{Total: 0, Data: []ArticleListResponse{}}
-		err := utils.Setcache(dynamicCacheKey, cacheObj)
+		err := utils.Setcache(ctx.Request.Context(), dynamicCacheKey, cacheObj)
 		if err != nil {
 			log.Println("【Redis警告】缓存空结果失败:", err)
 		} // 缓存空结果，设置较短过期时间
@@ -241,7 +242,7 @@ func GetArticles(ctx *gin.Context) {
 		Data:  response,
 	}
 	//将轻量级的数据存入缓存
-	if err := utils.Setcache(dynamicCacheKey, cacheObj); err != nil {
+	if err := utils.Setcache(ctx.Request.Context(), dynamicCacheKey, cacheObj); err != nil {
 		fmt.Printf("【Redis警告】缓存文章列表失败: %v\n", err)
 	}
 
@@ -269,7 +270,7 @@ func GetArticlesByID(ctx *gin.Context) {
 	eg.Go(func() error {
 		cacheKey := fmt.Sprintf("article:detail:%s", id)
 
-		datastr, err := global.RedisDB.WithContext(gCtx).Get(cacheKey).Result()
+		datastr, err := global.RedisDB.Get(gCtx, cacheKey).Result()
 		if err == nil {
 			if err := json.Unmarshal([]byte(datastr), &article); err != nil {
 				return err
@@ -284,7 +285,7 @@ func GetArticlesByID(ctx *gin.Context) {
 			return err
 		}
 
-		if err := utils.Setcache(cacheKey, article); err != nil {
+		if err := utils.Setcache(gCtx, cacheKey, article); err != nil {
 			fmt.Printf("【Redis警告】缓存文章详情失败: %v\n", err)
 		}
 		return nil
@@ -294,7 +295,7 @@ func GetArticlesByID(ctx *gin.Context) {
 		articleID, err := strconv.ParseUint(id, 10, 32)
 		cacheKey := fmt.Sprintf("article:%d:comments", articleID)
 
-		cacheData, err := global.RedisDB.WithContext(gCtx).Get(cacheKey).Result()
+		cacheData, err := global.RedisDB.Get(gCtx, cacheKey).Result()
 
 		if errors.Is(err, redis.Nil) {
 
@@ -302,7 +303,7 @@ func GetArticlesByID(ctx *gin.Context) {
 				return err
 			}
 
-			if err := utils.Setcache(cacheKey, comments); err != nil {
+			if err := utils.Setcache(gCtx, cacheKey, comments); err != nil {
 				fmt.Printf("【Redis警告】缓存文章评论失败: %v\n", err)
 			}
 
@@ -324,7 +325,7 @@ func GetArticlesByID(ctx *gin.Context) {
 
 		likeKey := "article:" + id + ":likes"
 
-		likes, err = global.RedisDB.WithContext(gCtx).Get(likeKey).Result()
+		likes, err = global.RedisDB.Get(gCtx, likeKey).Result()
 
 		if errors.Is(err, redis.Nil) {
 			// 只查询 likes 字段，提高效率
@@ -332,7 +333,7 @@ func GetArticlesByID(ctx *gin.Context) {
 				return err
 			}
 
-			if err := global.RedisDB.SetNX(likeKey, temp.Likes, 0).Err(); err != nil {
+			if err := global.RedisDB.SetNX(gCtx, likeKey, temp.Likes, 0).Err(); err != nil {
 				return err
 			}
 			likes = strconv.Itoa(temp.Likes)
@@ -344,7 +345,7 @@ func GetArticlesByID(ctx *gin.Context) {
 	})
 
 	go func() {
-		if err := global.RedisDB.Incr(fmt.Sprintf("article:%s:views", id)).Err(); err != nil {
+		if err := global.RedisDB.Incr(ctx.Request.Context(), fmt.Sprintf("article:%s:views", id)).Err(); err != nil {
 			fmt.Printf("【Redis警告】增加文章浏览量失败: %v\n", err)
 			return
 		}
@@ -393,10 +394,10 @@ func DelArticle(ctx *gin.Context) {
 	}
 
 	//第一次删除缓存
-	clearArticlesCache()
-	global.RedisDB.Del(fmt.Sprintf("article:detail:%s", idA))
-	global.RedisDB.Del(fmt.Sprintf("article:%s:comments", idA))
-	global.RedisDB.Del(fmt.Sprintf("article:%s:likes", idA))
+	clearArticlesCache(ctx.Request.Context())
+	global.RedisDB.Del(ctx.Request.Context(), fmt.Sprintf("article:detail:%s", idA))
+	global.RedisDB.Del(ctx.Request.Context(), fmt.Sprintf("article:%s:comments", idA))
+	global.RedisDB.Del(ctx.Request.Context(), fmt.Sprintf("article:%s:likes", idA))
 
 	if err := global.Db.Delete(&article).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -407,10 +408,10 @@ func DelArticle(ctx *gin.Context) {
 		time.Sleep(100 * time.Millisecond) //延时
 
 		//第二次删除缓存
-		clearArticlesCache()
-		global.RedisDB.Del(fmt.Sprintf("article:detail:%s", idA))
-		global.RedisDB.Del(fmt.Sprintf("article:%s:comments", idA))
-		global.RedisDB.Del(fmt.Sprintf("article:%s:likes", idA))
+		clearArticlesCache(ctx.Request.Context())
+		global.RedisDB.Del(ctx.Request.Context(), fmt.Sprintf("article:detail:%s", idA))
+		global.RedisDB.Del(ctx.Request.Context(), fmt.Sprintf("article:%s:comments", idA))
+		global.RedisDB.Del(ctx.Request.Context(), fmt.Sprintf("article:%s:likes", idA))
 	}()
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "ok", "message": "删除成功"})
@@ -475,8 +476,8 @@ func UpdateArticle(ctx *gin.Context) {
 		}
 	}
 	//第一次删除缓存
-	clearArticlesCache()
-	global.RedisDB.Del(fmt.Sprintf("article:detail:%s", articleID))
+	clearArticlesCache(ctx.Request.Context())
+	global.RedisDB.Del(ctx.Request.Context(), fmt.Sprintf("article:detail:%s", articleID))
 
 	updateData := map[string]interface{}{
 		"title":       input.Title,
@@ -495,8 +496,8 @@ func UpdateArticle(ctx *gin.Context) {
 		time.Sleep(100 * time.Millisecond) //延时
 
 		// //第二次删除缓存（重要：文章修改后，详情缓存和列表分页缓存都会失效）
-		clearArticlesCache()
-		global.RedisDB.Del(fmt.Sprintf("article:detail:%s", articleID))
+		clearArticlesCache(ctx.Request.Context())
+		global.RedisDB.Del(ctx.Request.Context(), fmt.Sprintf("article:detail:%s", articleID))
 	}()
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "更新成功", "article": article})

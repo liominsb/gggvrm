@@ -1,6 +1,7 @@
 package global
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"sync"
@@ -110,7 +111,7 @@ func (r *RedisBroker) Publish(msg Message) {
 		log.Println(err)
 		return
 	}
-	err = r.rdb.Publish(r.channelName, msgbyte).Err()
+	err = r.rdb.Publish(context.Background(), r.channelName, msgbyte).Err()
 	if err != nil {
 		log.Println("向 Redis 发布消息失败:", err)
 	}
@@ -118,7 +119,7 @@ func (r *RedisBroker) Publish(msg Message) {
 
 // 启动：开启邮局的分发流水线
 func (r *RedisBroker) Start() {
-	pubsub := r.rdb.Subscribe(r.channelName)
+	pubsub := r.rdb.Subscribe(context.Background(), r.channelName)
 	defer pubsub.Close()
 	ch := pubsub.Channel()
 
