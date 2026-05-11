@@ -3,9 +3,7 @@ package utils // Package utils 实用性
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"gggvrm/config"
 	"gggvrm/global"
 	"gggvrm/models"
 	"math/rand/v2"
@@ -13,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -22,43 +19,10 @@ func HashPassword(pwd string) (string, error) {
 	return string(hash), err
 }
 
-func GenerateJWT(id uint) (string, error) { //生成JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"ID":  id,
-		"exp": time.Now().Add(72 * time.Hour).Unix(),
-	})
-	signedToken, err := token.SignedString([]byte(config.Appconf.JWT.Key))
-	return "Bearer " + signedToken, err
-}
-
 // 检查密码
 func CheckPassword(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
-}
-
-// ParseJWT 解析JWT
-func ParseJWT(tokenString string) (uint, error) { //
-	if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
-		tokenString = tokenString[7:]
-	}
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(config.Appconf.JWT.Key), nil
-	})
-	if err != nil {
-		return 0, err
-	}
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		id, ok := claims["ID"].(float64)
-		if !ok {
-			return 0, errors.New("invalid token")
-		}
-		return uint(id), nil
-	}
-	return 0, errors.New("invalid token")
 }
 
 // Setcache 设置缓存

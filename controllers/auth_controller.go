@@ -32,14 +32,15 @@ func (c *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
-	token, err := c.authService.Register(ctx.Request.Context(), input.Username, input.Password)
+	token, refreshToken, err := c.authService.Register(ctx.Request.Context(), input.Username, input.Password)
 	if err != nil {
 		log.Println("注册失败:", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"注册失败,error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"token": token})
+	ctx.JSON(http.StatusOK, gin.H{"token": token,
+		"refreshToken": refreshToken})
 }
 
 // Login 登录
@@ -51,14 +52,15 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	token, err := c.authService.Login(ctx, input.Username, input.Password)
+	token, refreshToken, err := c.authService.Login(ctx, input.Username, input.Password)
 	if err != nil {
 		log.Println("登录失败:", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"token": token})
+	ctx.JSON(http.StatusOK, gin.H{"token": token,
+		"refreshToken": refreshToken})
 }
 
 // Getmyuser 查当前登录的用户信息
