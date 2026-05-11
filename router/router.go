@@ -51,6 +51,7 @@ func SetupRouter() *gin.Engine {
 	{
 		auth.POST("login", authCtrl.Login)
 		auth.POST("register", authCtrl.Register)
+		auth.POST("refreshTokens", authCtrl.RefreshTokens)
 	}
 
 	api := r.Group("/api/v1")

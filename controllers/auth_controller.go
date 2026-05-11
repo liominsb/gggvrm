@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"gggvrm/service"
+	"gggvrm/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -128,4 +129,35 @@ func (c *AuthController) Changepassword(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "密码修改成功"})
+}
+
+func (c *AuthController) RefreshTokens(ctx *gin.Context) {
+
+	var input struct {
+		AccessToken  string `json:"access_token" binding:"required"`
+		Refreshtoken string `json:"refreshtoken"`
+	}
+
+	if err := ctx.ShouldBind(&input); err != nil {
+		log.Println("登录参数错误:", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	claims, err := utils.ParseTokenAllowExpired(input.AccessToken)
+	if err != nil || claims == nil {
+		log.Println("解析Token失败:", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的访问令牌"})
+		return
+	}
+
+	token, refreshToken, err := c.authService.RefreshTokens(ctx.Request.Context(), claims.AccountID, input.Refreshtoken, claims.Username)
+	if err != nil {
+		log.Println("登录失败:", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"token": token,
+		"refreshToken": refreshToken})
 }

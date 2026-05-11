@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"golang.org/x/sync/singleflight"
 )
 
 type AuthService interface {
@@ -21,12 +20,12 @@ type AuthService interface {
 	GetMyUser(ctx context.Context, userID uint) (*models.User, error)
 	GetUserProfileById(ctx context.Context, targetUserID uint) (*models.User, error)
 	ChangePassword(ctx context.Context, userID uint, oldPassword string, newPassword string) error
+	RefreshTokens(ctx context.Context, accountID uint, incomingRT string, username string) (string, string, error)
 }
 
 type authServiceImpl struct {
 	authRepo    repository.AuthRepository
 	redisClient *redis.Client
-	sfGroup     singleflight.Group
 }
 
 func NewAuthService(authRepo repository.AuthRepository, redisClient *redis.Client) AuthService {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -81,9 +82,43 @@ func ParseToken(tokenString string) (*Claims, error) {
 
 	claims, ok := token.Claims.(*Claims)
 	if !ok || !token.Valid {
-		return nil, errors.New("invalid token claims")
+		return nil, errors.New("无效token")
 	}
 
+	return claims, nil
+}
+
+func ParseTokenAllowExpired(tokenString string) (*Claims, error) {
+	if strings.HasPrefix(tokenString, "Bearer ") {
+		tokenString = tokenString[7:]
+	}
+
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&Claims{},
+		func(token *jwt.Token) (interface{}, error) {
+			if token.Method == nil || token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
+				return nil, errors.New("意外签名方法")
+			}
+			return jwtSecret(), nil
+		},
+	)
+
+	// 即使token过期，只要签名正确就返回claims
+	if errors.Is(err, jwt.ErrTokenExpired) {
+		if claims, ok := token.Claims.(*Claims); ok {
+			return claims, nil
+		}
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*Claims)
+	if !ok {
+		return nil, errors.New("无效token")
+	}
 	return claims, nil
 }
 
