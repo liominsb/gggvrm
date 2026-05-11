@@ -17,12 +17,18 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	// 2. 依赖注入装配 (像乐高积木一样一层层组装)
-	likeRepo := repository.NewLikeRepository(global.Db)                      // Repo 层只管自己
-	likeService := service.NewLikeService(likeRepo, global.RedisDB)          // Service 层拿到 Repo 和 Redis
-	likeCtrl := controllers.NewLikeController(likeService)                   // Controller 拿到 Service
-	commentRepo := repository.NewCommentRepository(global.Db)                // Repo 层只管自己
-	commentService := service.NewCommentService(commentRepo, global.RedisDB) // Service 层拿到 Repo 和 Redis
-	commentCtrl := controllers.NewcCommentController(commentService)         // Controller 拿到 Service
+	likeRepo := repository.NewLikeRepository(global.Db)             // Repo 层只管自己
+	likeService := service.NewLikeService(likeRepo, global.RedisDB) // Service 层拿到 Repo 和 Redis
+	likeCtrl := controllers.NewLikeController(likeService)          // Controller 拿到 Service
+	commentRepo := repository.NewCommentRepository(global.Db)
+	commentService := service.NewCommentService(commentRepo, global.RedisDB)
+	commentCtrl := controllers.NewcCommentController(commentService)
+	authRepo := repository.NewAuthRepository(global.Db)
+	authService := service.NewAuthService(authRepo, global.RedisDB)
+	authCtrl := controllers.NewAuthController(authService)
+	articleRepo := repository.NewArticleRepository(global.Db)
+	articleService := service.NewArticleService(articleRepo, commentRepo, global.RedisDB)
+	articleCtrl := controllers.NewArticleController(articleService)
 
 	r.Use(cors.New(cors.Config{
 		// 允许哪些域来访问我？这里配置了前端的地址
@@ -43,23 +49,23 @@ func SetupRouter() *gin.Engine {
 
 	auth := r.Group("/api/auth")
 	{
-		auth.POST("login", controllers.Login)
-		auth.POST("register", controllers.Register)
+		auth.POST("login", authCtrl.Login)
+		auth.POST("register", authCtrl.Register)
 	}
 
 	api := r.Group("/api/v1")
 	api.Use(middlewares.AuthMiddleware())
 	{
-		api.GET("/user", controllers.Getmyuser)
-		api.GET("/user/:id", controllers.GetUserProfileById)
-		api.PUT("/user", controllers.Changepassword)
+		api.GET("/user", authCtrl.Getmyuser)
+		api.GET("/user/:id", authCtrl.GetUserProfileById)
+		api.PUT("/user", authCtrl.Changepassword)
 
-		api.POST("/article", controllers.CreateArticle)
-		api.DELETE("/article/:id", controllers.DelArticle)
-		api.GET("/articles", controllers.GetArticles)
-		api.GET("/article/:id", controllers.GetArticlesByID)
-		api.PUT("/article/:id", controllers.UpdateArticle)
-		api.GET("/articles/cursor", controllers.GetArticlesByCursor)
+		api.POST("/article", articleCtrl.CreateArticle)
+		api.DELETE("/article/:id", articleCtrl.DelArticle)
+		api.GET("/articles", articleCtrl.GetArticles)
+		api.GET("/article/:id", articleCtrl.GetArticlesByID)
+		api.PUT("/article/:id", articleCtrl.UpdateArticle)
+		api.GET("/articles/cursor", articleCtrl.GetArticlesByCursor)
 
 		api.POST("/article/:id/like", likeCtrl.LikeArticle)
 		api.GET("/article/:id/like", likeCtrl.GetArticlelikes)

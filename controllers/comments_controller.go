@@ -21,7 +21,7 @@ func NewcCommentController(commentService service.CommentService) *CommentContro
 }
 
 // CreateComments 创建评论
-func (r *CommentController) CreateComment(ctx *gin.Context) {
+func (c *CommentController) CreateComment(ctx *gin.Context) {
 	articleIDstring := ctx.Param("id")
 
 	articleID, err := strconv.ParseUint(articleIDstring, 10, 32)
@@ -56,7 +56,7 @@ func (r *CommentController) CreateComment(ctx *gin.Context) {
 		Content:   input.Content,
 	}
 
-	err = r.commentService.CreateComment(ctx, cacheKey, &comment)
+	err = c.commentService.CreateComment(ctx, cacheKey, &comment)
 	if err != nil {
 		return
 	}
@@ -71,7 +71,7 @@ func (r *CommentController) CreateComment(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, comment)
 }
 
-func (r *CommentController) DelComment(ctx *gin.Context) {
+func (c *CommentController) DelComment(ctx *gin.Context) {
 	commentIDStr := ctx.Param("id")
 
 	commentID, err := strconv.ParseUint(commentIDStr, 10, 32)
@@ -87,7 +87,7 @@ func (r *CommentController) DelComment(ctx *gin.Context) {
 	}
 	userid := id.(uint)
 
-	err = r.commentService.DelComment(ctx, commentID, userid)
+	err = c.commentService.DelComment(ctx, commentID, userid)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -96,7 +96,7 @@ func (r *CommentController) DelComment(ctx *gin.Context) {
 }
 
 // GetComments 获取单个文章的所有评论
-func (r *CommentController) GetComments(ctx *gin.Context) {
+func (c *CommentController) GetComments(ctx *gin.Context) {
 
 	articleIDstring := ctx.Param("id")
 	articleID, err := strconv.ParseUint(articleIDstring, 10, 32)
@@ -105,7 +105,7 @@ func (r *CommentController) GetComments(ctx *gin.Context) {
 		return
 	}
 
-	comments, err := r.commentService.GetComments(ctx, uint(articleID))
+	comments, err := c.commentService.GetComments(ctx, uint(articleID))
 	if err != nil {
 		log.Println("获取评论失败:", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get comments"})
