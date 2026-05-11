@@ -232,7 +232,7 @@ func (s *authServiceImpl) RefreshTokens(ctx context.Context, accountID uint, inc
 	storedRT, err := s.redisClient.HGet(ctx, redisKey, "refresh_token").Result()
 	if err != nil || storedRT != incomingRT {
 		// RT 不匹配或已失效，强制要求重新走密码登录
-		return "", "", errors.New("invalid refresh token, please login again")
+		return "", "", errors.New("RT 不匹配或已失效，强制要求重新走密码登录")
 	}
 
 	// 1. 生成唯一会话标识

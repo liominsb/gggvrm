@@ -56,7 +56,7 @@ func (c *CommentController) CreateComment(ctx *gin.Context) {
 		Content:   input.Content,
 	}
 
-	err = c.commentService.CreateComment(ctx, cacheKey, &comment)
+	err = c.commentService.CreateComment(ctx.Request.Context(), cacheKey, &comment)
 	if err != nil {
 		return
 	}
@@ -87,7 +87,7 @@ func (c *CommentController) DelComment(ctx *gin.Context) {
 	}
 	userid := id.(uint)
 
-	err = c.commentService.DelComment(ctx, commentID, userid)
+	err = c.commentService.DelComment(ctx.Request.Context(), commentID, userid)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -105,7 +105,7 @@ func (c *CommentController) GetComments(ctx *gin.Context) {
 		return
 	}
 
-	comments, err := c.commentService.GetComments(ctx, uint(articleID))
+	comments, err := c.commentService.GetComments(ctx.Request.Context(), uint(articleID))
 	if err != nil {
 		log.Println("获取评论失败:", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get comments"})
