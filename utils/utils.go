@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -163,4 +164,16 @@ func RandomExpiration(baseTime time.Duration) time.Duration {
 	// 使用 rand.Intn(60) 生成 0-59 的随机数，更加标准和易读
 	jitter := time.Duration(rand.IntN(60)) * time.Second
 	return baseTime + jitter
+}
+
+// 快速过滤掉字符串中的所有“非字母、非数字、非空格”的符号，只保留字母、数字和空白字符
+func FilterSymbolsFast(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }

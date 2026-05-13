@@ -26,7 +26,7 @@ func NewCommentRepository(db *gorm.DB) CommentsRepository {
 
 func (r *commentsRepoImpl) CreateComment(ctx context.Context, comment *models.Comment) error {
 
-	if err := r.db.WithContext(ctx).Create(&comment).Error; err != nil {
+	if err := r.db.WithContext(ctx).Create(comment).Error; err != nil {
 		log.Println("数据库插入评论失败:", err)
 		return err
 	}
@@ -52,7 +52,7 @@ func (r *commentsRepoImpl) GetArticleByID(ctx context.Context, id uint) (*models
 }
 
 func (r *commentsRepoImpl) DelComment(ctx context.Context, comment *models.Comment) error {
-	if err := r.db.WithContext(ctx).Unscoped().Delete(&comment).Error; err != nil {
+	if err := r.db.WithContext(ctx).Unscoped().Delete(comment).Error; err != nil {
 		log.Println("数据库删除评论失败:", err)
 		return err
 	}
