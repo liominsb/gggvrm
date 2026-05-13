@@ -58,6 +58,7 @@ func (c *CommentController) CreateComment(ctx *gin.Context) {
 
 	err = c.commentService.CreateComment(ctx.Request.Context(), cacheKey, &comment)
 	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"数据库插入失败,error": err.Error()})
 		return
 	}
 

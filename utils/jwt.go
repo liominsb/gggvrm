@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -13,7 +12,9 @@ import (
 )
 
 func jwtSecret() []byte {
-	secret := os.Getenv("JWT_SECRET")
+	//开发测试不用
+	//secret := os.Getenv("JWT_SECRET")
+	secret := "JWT"
 	if secret == "" {
 		b := make([]byte, 32)
 		if _, err := rand.Read(b); err != nil {

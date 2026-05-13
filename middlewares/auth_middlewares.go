@@ -11,8 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-//认证中间件
-
+// 认证中间件
 func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := ctx.GetHeader("Authorization")

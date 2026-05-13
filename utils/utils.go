@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"gggvrm/global"
-	"gggvrm/models"
 	"math/rand/v2"
 	"strconv"
 	"strings"
@@ -42,93 +41,121 @@ func Setcache(ctx context.Context, key string, value interface{}) error {
 
 // 同步点赞数和浏览数到数据库
 func SyncSql(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("SyncSql 发生严重错误并恢复: %v\n", r)
+			// 可以在这里做告警，并决定是否重新启动该协程
+		}
+	}()
+	ticker := time.NewTicker(1 * time.Minute)
 	for {
-		time.Sleep(1 * time.Minute)
-		var cursor uint64 // 初始游标为 0
-		var cursor1 uint64
-		var keys []string
-		var err error
-		for {
-			keys, cursor, err = global.RedisDB.Scan(ctx, cursor, "article:*:likes", 100).Result()
-			if err != nil {
-				fmt.Println("获取 Redis Keys 失败:", err)
-				break
-			}
+		select {
+		case <-ctx.Done():
+			fmt.Println("SyncSql 任务已取消")
+			return
+		case <-ticker.C:
+			syncFieldToDB(ctx, "likes")
+			syncFieldToDB(ctx, "views")
+			fmt.Println("已同步点赞数和浏览数到数据库")
+		}
+	}
+}
 
-			for _, key := range keys {
-				parts := strings.Split(key, ":")
-				if len(parts) != 3 {
-					continue
-				}
+func syncFieldToDB(ctx context.Context, field string) {
+	var cursor uint64
+	var keys []string
+	var err error
+	for {
+		match := "article:*:" + field
 
-				articleIDStr := parts[1]
-				articleID, err := strconv.Atoi(articleIDStr)
-				if err != nil {
-					continue
-				}
-
-				likesStr, err := global.RedisDB.Get(ctx, key).Result()
-				if err != nil {
-					continue
-				}
-				likes, err := strconv.Atoi(likesStr)
-				if err != nil {
-					continue
-				}
-
-				if err := global.Db.Model(&models.Article{}).Where("id = ?", articleID).Update("likes", likes).Error; err != nil {
-					fmt.Printf("更新文章 %d 点赞数失败: %v\n", articleID, err)
-				}
-			}
-
-			fmt.Println("已同步点赞数到数据库")
-
+		//keys只拿了点赞数的键名
+		keys, cursor, err = global.RedisDB.Scan(ctx, cursor, match, 100).Result()
+		if err != nil {
+			fmt.Println("获取 Redis Keys 失败:", err)
+			break
+		}
+		if len(keys) == 0 {
 			if cursor == 0 {
 				break
 			}
 		}
+		v, err := global.RedisDB.MGet(ctx, keys...).Result()
+		if err != nil {
+			fmt.Println("批量获取 Redis 值失败:", err)
+			break
+		}
 
-		for {
-			keys, cursor1, err = global.RedisDB.Scan(ctx, cursor1, "article:*:views", 100).Result()
+		updateData := make(map[int]int)
+
+		for i, key := range keys {
+			parts := strings.Split(key, ":")
+			if len(parts) != 3 {
+				continue
+			}
+
+			articleIDStr := parts[1]
+			articleID, err := strconv.Atoi(articleIDStr)
 			if err != nil {
-				fmt.Println("获取 Redis Keys 失败:", err)
-				break
+				continue
 			}
 
-			for _, key := range keys {
-				parts := strings.Split(key, ":")
-				if len(parts) != 3 {
-					continue
-				}
-
-				articleIDStr := parts[1]
-				articleID, err := strconv.Atoi(articleIDStr)
-				if err != nil {
-					continue
-				}
-
-				viewsStr, err := global.RedisDB.Get(ctx, key).Result()
-				if err != nil {
-					continue
-				}
-				views, err := strconv.Atoi(viewsStr)
-				if err != nil {
-					continue
-				}
-
-				if err := global.Db.Model(&models.Article{}).Where("id = ?", articleID).Update("views", views).Error; err != nil {
-					fmt.Printf("更新文章 %d 浏览数失败: %v\n", articleID, err)
-				}
+			vstr, ok := v[i].(string)
+			if !ok {
+				continue
 			}
-			fmt.Println("已同步浏览数到数据库")
 
-			if cursor1 == 0 {
-				break
+			fields, err := strconv.Atoi(vstr)
+			if err != nil {
+				continue
+			}
+			updateData[articleID] = fields
+		}
+
+		if len(updateData) > 0 {
+			var sqlBuilder strings.Builder
+			var ids []int
+
+			// 1. 拼接前半部分 (动态传入要更新的字段名)
+			sqlBuilder.WriteString(fmt.Sprintf("UPDATE articles SET %s = CASE id ", field))
+
+			// 2. 动态拼接 WHEN ... THEN ...
+			for id, fields := range updateData {
+				// 因为 id 和 fields 都是严格的 int 类型，直接 Sprintf 拼接不存在 SQL 注入风险
+				sqlBuilder.WriteString(fmt.Sprintf("WHEN %d THEN %d ", id, fields))
+				ids = append(ids, id)
+			}
+
+			// 3. 拼接收尾，加入 ELSE 防御和 WHERE 限制
+			sqlBuilder.WriteString(fmt.Sprintf("ELSE %s END WHERE id IN (?)", field))
+
+			// 4. 执行原生 SQL
+			// global.Db.Exec 会自动把 ids 切片展开并替换掉 ?
+			err := global.Db.Exec(sqlBuilder.String(), ids).Error
+			if err != nil {
+				fmt.Println("批量更新失败:", err)
 			}
 		}
 
+		//if len(updateData) > 0 {
+		//	err := global.Db.Transaction(func(tx *gorm.DB) error {
+		//		for articleID, fields := range updateData {
+		//			if err := tx.Model(&models.Article{}).Where("id = ?", articleID).Update(field, fields).Error; err != nil {
+		//				log.Printf("更新文章 %d %s数失败: %v\n", articleID, field, err)
+		//				return err
+		//			}
+		//		}
+		//		return nil
+		//	})
+		//	if err != nil {
+		//		fmt.Printf("批量更新数据库%s数失败: %v\n", field, err)
+		//	} else {
+		//		fmt.Printf("已同步%s数到数据库", field)
+		//	}
+		//}
+		if cursor == 0 {
+			break
+		}
 	}
-
 }
 
 // RandomExpiration 传入一个基础过期时间，返回增加 0~59 秒随机抖动后的时间
