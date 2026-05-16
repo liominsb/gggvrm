@@ -20,15 +20,26 @@ func SetupRouter() *gin.Engine {
 	likeRepo := repository.NewLikeRepository(global.Db)             // Repo 层只管自己
 	likeService := service.NewLikeService(likeRepo, global.RedisDB) // Service 层拿到 Repo 和 Redis
 	likeCtrl := controllers.NewLikeController(likeService)          // Controller 拿到 Service
+
 	commentRepo := repository.NewCommentRepository(global.Db)
 	commentService := service.NewCommentService(commentRepo, global.RedisDB)
 	commentCtrl := controllers.NewcCommentController(commentService)
+
 	authRepo := repository.NewAuthRepository(global.Db)
 	authService := service.NewAuthService(authRepo, global.RedisDB)
 	authCtrl := controllers.NewAuthController(authService)
+
 	articleRepo := repository.NewArticleRepository(global.Db)
 	articleService := service.NewArticleService(articleRepo, commentRepo, global.RedisDB)
 	articleCtrl := controllers.NewArticleController(articleService)
+
+	tagsRepo := repository.NewTagsRepository(global.Db)
+	tagsService := service.NewTagsService(tagsRepo, global.RedisDB)
+	tagsCtrl := controllers.NewTagsController(tagsService)
+
+	cateRepo := repository.NewCateRepository(global.Db)
+	cateService := service.NewCateService(cateRepo, global.RedisDB)
+	cateCtrl := controllers.NewCateController(cateService)
 
 	r.Use(cors.New(cors.Config{
 		// 允许哪些域来访问我？这里配置了前端的地址
@@ -76,6 +87,14 @@ func SetupRouter() *gin.Engine {
 		api.GET("/article/:id/comments", commentCtrl.GetComments)
 
 		api.POST("/upload", controllers.UploadImage)
+
+		api.GET("/tags", tagsCtrl.GetTags)
+		api.POST("/tag", tagsCtrl.CreateTag)
+		api.DELETE("/tag/:id", tagsCtrl.DeleteTag)
+
+		api.GET("/categories", cateCtrl.GetCates)
+		api.POST("/category", cateCtrl.CreateCate)
+		api.DELETE("/category/:id", cateCtrl.DeleteCate)
 
 		api.GET("/ws", controllers.HandleConnections)
 	}

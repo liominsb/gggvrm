@@ -3,14 +3,17 @@ package utils // Package utils 实用性
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"gggvrm/global"
+	"log"
 	"math/rand/v2"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -38,6 +41,45 @@ func Setcache(ctx context.Context, key string, value interface{}) error {
 	}
 
 	return nil
+}
+
+// GetCacheOrQuery 通用缓存函数：先查Redis，缓存未命中或解析失败则降级到数据库查询
+// T: 数据类型
+// 参数：
+//
+//	ctx: 上下文
+//	redisClient: Redis客户端
+//	cacheKey: 缓存键
+//	queryFunc: 查询函数，当缓存未命中时调用，返回数据指针和错误
+//
+// 返回：
+//
+//	数据指针和错误
+func GetCacheOrQuery[T any](ctx context.Context, redisClient *redis.Client, cacheKey string, queryFunc func() (*T, error)) (*T, error) {
+	cacheData, err := redisClient.Get(ctx, cacheKey).Result()
+
+	if err == nil {
+		var data T
+		if err := json.Unmarshal([]byte(cacheData), &data); err == nil {
+			return &data, nil
+		}
+		log.Println("缓存解析失败，降级到数据库查询:", cacheKey)
+	} else if !errors.Is(err, redis.Nil) {
+		log.Println("Redis查询错误，降级到数据库查询:", err)
+	}
+
+	data, err := queryFunc()
+	if err != nil {
+		return nil, err
+	}
+
+	if data != nil {
+		if err := Setcache(ctx, cacheKey, data); err != nil {
+			log.Println("缓存数据失败:", err)
+		}
+	}
+
+	return data, nil
 }
 
 // 同步点赞数和浏览数到数据库

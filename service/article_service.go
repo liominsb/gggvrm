@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"gggvrm/models"
@@ -120,68 +119,58 @@ func (s *articleServiceImpl) GetArticles(ctx context.Context, page, pageSize, ca
 
 	dynamicCacheKey := fmt.Sprintf("articles:page:%d:size:%d:cat:%d:tag:%d", page, pageSize, categoryID, tagID)
 
-	cacheData, err := s.redisClient.Get(ctx, dynamicCacheKey).Result()
-	if err == nil {
-		var cacheObj ArticleCache
-		if err := json.Unmarshal([]byte(cacheData), &cacheObj); err != nil {
-			return nil, 0, 0, 0, err
+	cacheObj, err := utils.GetCacheOrQuery(ctx, s.redisClient, dynamicCacheKey, func() (*ArticleCache, error) {
+		offset := (page - 1) * pageSize
+		var articles []models.Article
+		total, err := s.articleRepo.GetArticlesWithPagination(ctx, &articles, offset, pageSize, categoryID, tagID, keyword)
+		if err != nil {
+			return nil, err
 		}
-		return &cacheObj, page, pageSize, cacheObj.Total, nil
-	}
-	if !errors.Is(err, redis.Nil) {
-		return nil, 0, 0, 0, err
-	}
 
-	offset := (page - 1) * pageSize
-	var articles []models.Article
-	total, err := s.articleRepo.GetArticlesWithPagination(ctx, &articles, offset, pageSize, categoryID, tagID, keyword)
+		// 即使结果为空，也缓存（防止缓存穿透）
+		if total == 0 {
+			cacheObj := ArticleCache{Total: 0, Data: []ArticleListResponse{}}
+			return &cacheObj, nil
+		}
+
+		// 数据转换 (DTO 映射)
+		var response = make([]ArticleListResponse, 0)
+		for _, a := range articles {
+			var tagNames []string
+			for _, t := range a.Tags {
+				tagNames = append(tagNames, t.Name)
+			}
+			var categoryName string
+			if a.Category != nil {
+				categoryName = a.Category.Name
+			}
+			response = append(response, ArticleListResponse{
+				ID:           a.ID,
+				Title:        a.Title,
+				Preview:      a.Preview,
+				Likes:        a.Likes,
+				Views:        a.Views,
+				UserID:       a.UserID,
+				CategoryName: categoryName,
+				Tags:         tagNames,
+				CoverImg:     a.CoverImg,
+				CreatedAt:    a.CreatedAt,
+			})
+		}
+
+		cacheObj := ArticleCache{
+			Total: total,
+			Data:  response,
+		}
+		return &cacheObj, nil
+	})
 	if err != nil {
 		return nil, 0, 0, 0, err
 	}
-
-	// 即使结果为空，也缓存（防止缓存穿透）
-	if total == 0 {
-		cacheObj := ArticleCache{Total: 0, Data: []ArticleListResponse{}}
-		if err := utils.Setcache(ctx, dynamicCacheKey, cacheObj); err != nil {
-			log.Println("Redis警告 缓存空结果失败:", err)
-		}
-		return &cacheObj, page, pageSize, 0, nil
+	if cacheObj == nil {
+		return nil, 0, 0, 0, err
 	}
-
-	// 数据转换 (DTO 映射)
-	var response = make([]ArticleListResponse, 0)
-	for _, a := range articles {
-		var tagNames []string
-		for _, t := range a.Tags {
-			tagNames = append(tagNames, t.Name)
-		}
-		var categoryName string
-		if a.Category != nil {
-			categoryName = a.Category.Name
-		}
-		response = append(response, ArticleListResponse{
-			ID:           a.ID,
-			Title:        a.Title,
-			Preview:      a.Preview,
-			Likes:        a.Likes,
-			Views:        a.Views,
-			UserID:       a.UserID,
-			CategoryName: categoryName,
-			Tags:         tagNames,
-			CoverImg:     a.CoverImg,
-			CreatedAt:    a.CreatedAt,
-		})
-	}
-
-	cacheObj := ArticleCache{
-		Total: total,
-		Data:  response,
-	}
-	if err := utils.Setcache(ctx, dynamicCacheKey, cacheObj); err != nil {
-		fmt.Printf("Redis警告 缓存文章列表失败: %v\n", err)
-	}
-
-	return &cacheObj, page, pageSize, total, nil
+	return cacheObj, page, pageSize, cacheObj.Total, nil
 }
 
 func (s *articleServiceImpl) GetArticlesByID(ctx context.Context, id string) (*models.Article, []models.Comment, string, error) {
@@ -193,25 +182,16 @@ func (s *articleServiceImpl) GetArticlesByID(ctx context.Context, id string) (*m
 
 	eg.Go(func() error {
 		cacheKey := fmt.Sprintf("article:detail:%s", id)
-
-		datastr, err := s.redisClient.Get(gCtx, cacheKey).Result()
-		if err == nil {
-			if err := json.Unmarshal([]byte(datastr), &article); err != nil {
-				return err
+		result, err := utils.GetCacheOrQuery(gCtx, s.redisClient, cacheKey, func() (*models.Article, error) {
+			if err := s.articleRepo.GetArticleByIDWithPreload(gCtx, &article, id); err != nil {
+				return nil, err
 			}
-			return nil
-		}
-		if !errors.Is(err, redis.Nil) {
+			return &article, nil
+		})
+		if err != nil {
 			return err
 		}
-
-		if err := s.articleRepo.GetArticleByIDWithPreload(gCtx, &article, id); err != nil {
-			return err
-		}
-
-		if err := utils.Setcache(gCtx, cacheKey, article); err != nil {
-			fmt.Printf("Redis警告 缓存文章详情失败: %v\n", err)
-		}
+		article = *result
 		return nil
 	})
 
@@ -221,28 +201,17 @@ func (s *articleServiceImpl) GetArticlesByID(ctx context.Context, id string) (*m
 			return err
 		}
 		cacheKey := fmt.Sprintf("article:%d:comments", articleID)
-
-		cacheData, err := s.redisClient.Get(gCtx, cacheKey).Result()
-
-		if errors.Is(err, redis.Nil) {
-			comments, err = s.commentRepo.GetComments(gCtx, uint(articleID))
+		result, err := utils.GetCacheOrQuery(gCtx, s.redisClient, cacheKey, func() (*[]models.Comment, error) {
+			comments, err := s.commentRepo.GetComments(gCtx, uint(articleID))
 			if err != nil {
-				return err
+				return nil, err
 			}
-
-			if err := utils.Setcache(gCtx, cacheKey, comments); err != nil {
-				fmt.Printf("Redis警告 缓存文章评论失败: %v\n", err)
-			}
-
-			return nil
-		}
+			return &comments, nil
+		})
 		if err != nil {
 			return err
 		}
-
-		if err := json.Unmarshal([]byte(cacheData), &comments); err != nil {
-			return err
-		}
+		comments = *result
 		return nil
 	})
 

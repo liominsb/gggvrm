@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"gggvrm/models"
@@ -114,77 +113,44 @@ func (s *authServiceImpl) Login(ctx context.Context, Username string, Password s
 func (s *authServiceImpl) GetMyUser(ctx context.Context, userID uint) (*models.User, error) {
 	cacheKey := fmt.Sprintf("USER:%d", userID)
 
-	// 先尝试从Redis缓存获取
-	data, err := s.redisClient.Get(ctx, cacheKey).Result()
-	if err == nil {
-		// 缓存命中
+	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*models.User, error) {
 		var user models.User
-		if err := json.Unmarshal([]byte(data), &user); err != nil {
+		if err := s.authRepo.GetUserByID(ctx, &user, userID); err != nil {
 			return nil, err
 		}
-		user.Password = ""
 		return &user, nil
-	}
-
-	// 缓存未命中，检查是否是redis.Nil错误
-	if !errors.Is(err, redis.Nil) {
-		// 其他Redis错误
+	})
+	if err != nil {
 		return nil, err
 	}
-
-	// 从数据库获取用户
-	var user models.User
-	if err := s.authRepo.GetUserByID(ctx, &user, userID); err != nil {
-		return nil, err
+	if result == nil {
+		return nil, nil
 	}
-
-	// 将用户信息存入缓存
-	if err := utils.Setcache(ctx, cacheKey, user); err != nil {
-		// 缓存设置失败不影响主流程，只记录日志
-		fmt.Printf("设置缓存失败 UserID: %d, err: %v\n", userID, err)
-	}
-
 	// 返回用户信息（不包含密码）
-	user.Password = ""
-	return &user, nil
+	result.Password = ""
+	return result, nil
 }
 
 func (s *authServiceImpl) GetUserProfileById(ctx context.Context, targetUserID uint) (*models.User, error) {
 	cacheKey := fmt.Sprintf("USER:%d", targetUserID)
 
-	// 先尝试从Redis缓存获取
-	data, err := s.redisClient.Get(ctx, cacheKey).Result()
-	if err == nil {
-		// 缓存命中
+	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*models.User, error) {
 		var user models.User
-		if err := json.Unmarshal([]byte(data), &user); err != nil {
+		if err := s.authRepo.GetUserByID(ctx, &user, targetUserID); err != nil {
 			return nil, err
 		}
-		user.Password = ""
 		return &user, nil
-	}
-
-	// 缓存未命中，检查是否是redis.Nil错误
-	if !errors.Is(err, redis.Nil) {
-		// 其他Redis错误
+	})
+	if err != nil {
 		return nil, err
-	}
-
-	// 从数据库获取用户
-	var user models.User
-	if err := s.authRepo.GetUserByID(ctx, &user, targetUserID); err != nil {
-		return nil, err
-	}
-
-	// 将用户信息存入缓存
-	if err := utils.Setcache(ctx, cacheKey, user); err != nil {
-		// 缓存设置失败不影响主流程，只记录日志
-		fmt.Printf("设置缓存失败 UserID: %d, err: %v\n", targetUserID, err)
 	}
 
 	// 返回用户信息（不包含密码）
-	user.Password = ""
-	return &user, nil
+	if result == nil {
+		return nil, nil
+	}
+	result.Password = ""
+	return result, nil
 }
 
 func (s *authServiceImpl) ChangePassword(ctx context.Context, userID uint, oldPassword string, newPassword string) error {
