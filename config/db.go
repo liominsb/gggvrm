@@ -56,6 +56,18 @@ func initDB() {
 		return
 	}
 
+	err = global.Db.SetupJoinTable(&models.User{}, "Followings", &models.UserFollow{})
+	if err != nil {
+		fmt.Println("注册 User(Followings) 的中间表失败:", err)
+		return
+	}
+
+	err = global.Db.SetupJoinTable(&models.User{}, "Followers", &models.UserFollow{})
+	if err != nil {
+		fmt.Println("注册 User(Followers) 的中间表失败:", err)
+		return
+	}
+
 	err = global.Db.AutoMigrate(
 		&models.User{},
 		&models.Article{},

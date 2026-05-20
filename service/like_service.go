@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"gggvrm/models"
+	"gggvrm/mq"
 	"gggvrm/repository"
 	"gggvrm/utils"
 	"log"
@@ -15,7 +18,7 @@ import (
 
 type LikeService interface {
 	GetArticleLikes(ctx context.Context, articleIDStr string) (string, error)
-	LikeArticle(ctx context.Context, articleIDStr string) (string, error)
+	LikeArticle(ctx context.Context, articleIDStr string, userID uint) (string, error)
 }
 
 type likeServiceImpl struct {
@@ -62,7 +65,7 @@ func (s *likeServiceImpl) GetArticleLikes(ctx context.Context, articleIDStr stri
 	return strconv.Itoa(likes), nil
 }
 
-func (s *likeServiceImpl) LikeArticle(ctx context.Context, articleIDStr string) (string, error) {
+func (s *likeServiceImpl) LikeArticle(ctx context.Context, articleIDStr string, userID uint) (string, error) {
 	articleID, err := strconv.Atoi(articleIDStr)
 	if err != nil || articleID <= 0 {
 		return "", errors.New("无效的文章ID")
@@ -86,29 +89,41 @@ func (s *likeServiceImpl) LikeArticle(ctx context.Context, articleIDStr string) 
 		}
 	}
 
+	article := models.Article{}
+	cacheKey := fmt.Sprintf("article:detail:%d", articleID)
+	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*models.Article, error) {
+		if err := s.likeRepo.GetArticleByIDWithPreload(ctx, &article, strconv.Itoa(articleID)); err != nil {
+			return nil, err
+		}
+		return &article, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	if result == nil {
+		return "", err
+	}
+	article = *result
+
 	newLikes, err := s.redisClient.Incr(ctx, likeKey).Result()
 	if err != nil {
 		return "0", errors.New("点赞失败")
 	}
 
-	return strconv.Itoa(int(newLikes)), nil
+	msgData, _ := json.Marshal(map[string]interface{}{
+		"action":         "like_article",
+		"article_id":     articleID,
+		"user_id":        userID, // 新增：谁点的赞（核心参数）
+		"AuthorUsername": article.User.Username,
+		"timestamp":      time.Now().Unix(), // 新增：事件发生时间
+	})
 
-	//msgData, _ := json.Marshal(map[string]interface{}{
-	//	"action":     "like_article",
-	//	"article_id": articleID,
-	//})
-	//
-	//err = global.RabbitMQChan.Publish(
-	//	"",           // 默认交换机
-	//	"like_tasks", // 你的队列名称
-	//	false,
-	//	false,
-	//	amqp.Publishing{
-	//		ContentType: "application/json",
-	//		Body:        msgData,
-	//	},
-	//)
-	//if err != nil {
-	//	fmt.Printf("【RabbitMQ警告】发送点赞消息失败: %v\n", err)
-	//}
+	// 使用你之前在 mq/producer.go 中封装好的函数
+	err = mq.PublishMessage("like_tasks", msgData)
+	if err != nil {
+		// 发送失败只需打日志，千万别 return err，不能因为发消息失败导致用户的点赞操作失败（保证核心主流程可用）
+		log.Printf("【RabbitMQ警告】发送点赞消息失败: %v\n", err)
+	}
+
+	return strconv.Itoa(int(newLikes)), nil
 }

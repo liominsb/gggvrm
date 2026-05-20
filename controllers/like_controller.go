@@ -20,7 +20,12 @@ func NewLikeController(likeService service.LikeService) *LikeController {
 // LikeArticle 赞成文章
 func (c *LikeController) LikeArticle(ctx *gin.Context) {
 	articleID := ctx.Param("id")
-	likes, err := c.likeService.LikeArticle(ctx.Request.Context(), articleID)
+	userID, ex := ctx.Get("ID")
+	if !ex {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "未登录"})
+		return
+	}
+	likes, err := c.likeService.LikeArticle(ctx.Request.Context(), articleID, userID.(uint))
 	if err != nil {
 		// 粗略根据错误信息判断状态码（严谨的做法是在 Service 返回自定义 Error 结构体包含 Code）
 		if err.Error() == "文章不存在" {

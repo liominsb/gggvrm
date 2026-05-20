@@ -10,6 +10,7 @@ import (
 
 type LikeRepository interface {
 	GetArticleLikes(ctx context.Context, articleID uint) (int, error)
+	GetArticleByIDWithPreload(ctx context.Context, article *models.Article, id string) error
 }
 
 type likeRepoImpl struct {
@@ -30,4 +31,8 @@ func (r *likeRepoImpl) GetArticleLikes(ctx context.Context, articleID uint) (int
 	}
 
 	return article.Likes, nil
+}
+
+func (r *likeRepoImpl) GetArticleByIDWithPreload(ctx context.Context, article *models.Article, id string) error {
+	return r.db.WithContext(ctx).Preload("Category").Preload("Tags").Where("id = ?", id).First(article).Error
 }

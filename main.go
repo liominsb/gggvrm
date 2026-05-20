@@ -6,6 +6,7 @@ import (
 	"gggvrm/config"
 	"gggvrm/controllers"
 	"gggvrm/global"
+	"gggvrm/mq"
 	"gggvrm/router"
 	"gggvrm/utils"
 	"log"
@@ -31,6 +32,8 @@ func main() {
 	go utils.SyncSql(ctx) //同步like数据到数据库
 
 	go controllers.HandleMessages()
+
+	mq.StartConsumers()
 
 	if config.Appconf.Database.SubSwitch {
 		global.Me = global.NewRedisBroker()

@@ -2,10 +2,7 @@ package router // Package router 路由
 
 import (
 	"gggvrm/controllers"
-	"gggvrm/global"
 	"gggvrm/middlewares"
-	"gggvrm/repository"
-	"gggvrm/service"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -16,30 +13,8 @@ import (
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
-	// 2. 依赖注入装配 (像乐高积木一样一层层组装)
-	likeRepo := repository.NewLikeRepository(global.Db)             // Repo 层只管自己
-	likeService := service.NewLikeService(likeRepo, global.RedisDB) // Service 层拿到 Repo 和 Redis
-	likeCtrl := controllers.NewLikeController(likeService)          // Controller 拿到 Service
-
-	commentRepo := repository.NewCommentRepository(global.Db)
-	commentService := service.NewCommentService(commentRepo, global.RedisDB)
-	commentCtrl := controllers.NewcCommentController(commentService)
-
-	authRepo := repository.NewAuthRepository(global.Db)
-	authService := service.NewAuthService(authRepo, global.RedisDB)
-	authCtrl := controllers.NewAuthController(authService)
-
-	articleRepo := repository.NewArticleRepository(global.Db)
-	articleService := service.NewArticleService(articleRepo, commentRepo, global.RedisDB)
-	articleCtrl := controllers.NewArticleController(articleService)
-
-	tagsRepo := repository.NewTagsRepository(global.Db)
-	tagsService := service.NewTagsService(tagsRepo, global.RedisDB)
-	tagsCtrl := controllers.NewTagsController(tagsService)
-
-	cateRepo := repository.NewCateRepository(global.Db)
-	cateService := service.NewCateService(cateRepo, global.RedisDB)
-	cateCtrl := controllers.NewCateController(cateService)
+	// 依赖注入装配
+	ctrls := Inject()
 
 	r.Use(cors.New(cors.Config{
 		// 允许哪些域来访问我？这里配置了前端的地址
@@ -60,41 +35,52 @@ func SetupRouter() *gin.Engine {
 
 	auth := r.Group("/api/auth")
 	{
-		auth.POST("login", authCtrl.Login)
-		auth.POST("register", authCtrl.Register)
-		auth.POST("refreshTokens", authCtrl.RefreshTokens)
+		auth.POST("login", ctrls.AuthCtrl.Login)
+		auth.POST("register", ctrls.AuthCtrl.Register)
+		auth.POST("refreshTokens", ctrls.AuthCtrl.RefreshTokens)
 	}
 
 	api := r.Group("/api/v1")
 	api.Use(middlewares.AuthMiddleware())
 	{
-		api.GET("/user", authCtrl.Getmyuser)
-		api.GET("/user/:id", authCtrl.GetUserProfileById)
-		api.PUT("/user", authCtrl.Changepassword)
+		api.GET("/user", ctrls.AuthCtrl.Getmyuser)
+		api.GET("/user/:id", ctrls.AuthCtrl.GetUserProfileById)
+		api.PUT("/user", ctrls.AuthCtrl.Changepassword)
 
-		api.POST("/article", articleCtrl.CreateArticle)
-		api.DELETE("/article/:id", articleCtrl.DelArticle)
-		api.GET("/articles", articleCtrl.GetArticles)
-		api.GET("/article/:id", articleCtrl.GetArticlesByID)
-		api.PUT("/article/:id", articleCtrl.UpdateArticle)
-		api.GET("/articles/cursor", articleCtrl.GetArticlesByCursor)
+		api.POST("/article", ctrls.ArticleCtrl.CreateArticle)
+		api.DELETE("/article/:id", ctrls.ArticleCtrl.DelArticle)
+		api.GET("/articles", ctrls.ArticleCtrl.GetArticles)
+		api.GET("/article/:id", ctrls.ArticleCtrl.GetArticlesByID)
+		api.PUT("/article/:id", ctrls.ArticleCtrl.UpdateArticle)
+		api.GET("/articles/cursor", ctrls.ArticleCtrl.GetArticlesByCursor)
 
-		api.POST("/article/:id/like", likeCtrl.LikeArticle)
-		api.GET("/article/:id/like", likeCtrl.GetArticlelikes)
+		api.POST("/article/:id/like", ctrls.LikeCtrl.LikeArticle)
+		api.GET("/article/:id/like", ctrls.LikeCtrl.GetArticlelikes)
 
-		api.POST("/article/:id/comment", commentCtrl.CreateComment)
-		api.DELETE("/comment/:id", commentCtrl.DelComment)
-		api.GET("/article/:id/comments", commentCtrl.GetComments)
+		api.POST("/article/:id/comment", ctrls.CommentCtrl.CreateComment)
+		api.DELETE("/comment/:id", ctrls.CommentCtrl.DelComment)
+		api.GET("/article/:id/comments", ctrls.CommentCtrl.GetComments)
 
 		api.POST("/upload", controllers.UploadImage)
 
-		api.GET("/tags", tagsCtrl.GetTags)
-		api.POST("/tag", tagsCtrl.CreateTag)
-		api.DELETE("/tag/:id", tagsCtrl.DeleteTag)
+		api.GET("/tags", ctrls.TagsCtrl.GetTags)
+		api.POST("/tag", ctrls.TagsCtrl.CreateTag)
+		api.DELETE("/tag/:id", ctrls.TagsCtrl.DeleteTag)
 
-		api.GET("/categories", cateCtrl.GetCates)
-		api.POST("/category", cateCtrl.CreateCate)
-		api.DELETE("/category/:id", cateCtrl.DeleteCate)
+		api.GET("/categories", ctrls.CateCtrl.GetCates)
+		api.POST("/category", ctrls.CateCtrl.CreateCate)
+		api.DELETE("/category/:id", ctrls.CateCtrl.DeleteCate)
+
+		api.POST("/article/:id/favorite", ctrls.FavCtrl.ToggleFavorite)
+		api.GET("/article/:id/favorite", ctrls.FavCtrl.GetFavoriteStatus)
+		api.GET("/article/:id/favorites/count", ctrls.FavCtrl.GetFavoriteCount)
+		api.GET("/user/favorites", ctrls.FavCtrl.GetUserFavorites)
+
+		api.POST("/user/:id/follow", ctrls.FollowCtrl.ToggleFollow)
+		api.GET("/user/:id/follow", ctrls.FollowCtrl.GetFollowStatus)
+		api.GET("/user/:id/follow/counts", ctrls.FollowCtrl.GetFollowCounts)
+		api.GET("/user/:id/following", ctrls.FollowCtrl.GetFollowing)
+		api.GET("/user/:id/followers", ctrls.FollowCtrl.GetFollowers)
 
 		api.GET("/ws", controllers.HandleConnections)
 	}

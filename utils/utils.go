@@ -97,6 +97,15 @@ func SyncSql(ctx context.Context) {
 			fmt.Println("SyncSql 任务已取消")
 			return
 		case <-ticker.C:
+			B := global.RedisDB.SetNX(ctx, "lock:sync_sql:likes_views", 1, 50*time.Second)
+			ok, err := B.Result()
+			if err != nil {
+				log.Printf("SyncSql Redis 抢锁异常: %v\n", err)
+				continue
+			}
+			if !ok {
+				continue
+			}
 			syncFieldToDB(ctx, "likes")
 			syncFieldToDB(ctx, "views")
 			fmt.Println("已同步点赞数和浏览数到数据库")

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"gggvrm/config"
 	"log"
 	"strings"
 	"time"
@@ -14,7 +15,7 @@ import (
 func jwtSecret() []byte {
 	//开发测试不用
 	//secret := os.Getenv("JWT_SECRET")
-	secret := "JWT"
+	secret := config.Appconf.JWT.Key
 	if secret == "" {
 		b := make([]byte, 32)
 		if _, err := rand.Read(b); err != nil {
