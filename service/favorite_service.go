@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"gggvrm/models"
-	"gggvrm/mq"
 	"gggvrm/repository"
 	"gggvrm/utils"
 	"log"
@@ -104,18 +103,21 @@ func (s *favoriteServiceImpl) ToggleFavorite(ctx context.Context, articleIDStr s
 	// 设置用户收藏状态缓存
 	s.redisClient.Set(ctx, isFavKey, 1, utils.RandomExpiration(10*time.Minute))
 
-	// 通过 MQ 异步通知文章作者
-	msgData, _ := json.Marshal(map[string]interface{}{
-		"action":     "favorite_article",
-		"article_id": articleID,
-		"user_id":    userID,
-		"timestamp":  time.Now().Unix(),
-	})
-
-	err = mq.PublishMessage("favorite_tasks", msgData)
-	if err != nil {
-		log.Printf("【RabbitMQ警告】发送收藏消息失败: %v\n", err)
-	}
+	//// 消息体富化：生产者查好用户名，消费者零查库
+	//authorUsername, _ := s.favoriteRepo.GetArticleAuthorUsername(ctx, uint(articleID))
+	//
+	//msgData, _ := json.Marshal(map[string]interface{}{
+	//	"action":          "favorite_article",
+	//	"article_id":      articleID,
+	//	"user_id":         userID,
+	//	"author_username": authorUsername,
+	//	"timestamp":       time.Now().Unix(),
+	//})
+	//
+	//err = mq.PublishMessage("favorite_tasks", msgData)
+	//if err != nil {
+	//	log.Printf("【RabbitMQ警告】发送收藏消息失败: %v\n", err)
+	//}
 
 	return true, nil
 }

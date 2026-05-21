@@ -11,6 +11,7 @@ type ArticleRepository interface {
 	CreateArticle(ctx context.Context, article *models.Article) error
 	GetArticleByID(ctx context.Context, article *models.Article, id string) error
 	GetArticleByIDWithPreload(ctx context.Context, article *models.Article, id string) error
+	GetArticlesByIDs(ctx context.Context, ids []uint) ([]models.Article, error)
 	DeleteArticle(ctx context.Context, article *models.Article) error
 	UpdateArticle(ctx context.Context, article *models.Article, updateData map[string]interface{}) error
 	GetArticlesWithPagination(ctx context.Context, articles *[]models.Article, offset, pageSize int, categoryID, tagID int, keyword string) (int64, error)
@@ -38,6 +39,15 @@ func (r *articleRepoImpl) GetArticleByID(ctx context.Context, article *models.Ar
 
 func (r *articleRepoImpl) GetArticleByIDWithPreload(ctx context.Context, article *models.Article, id string) error {
 	return r.db.WithContext(ctx).Preload("Category").Preload("Tags").Where("id = ?", id).First(article).Error
+}
+
+func (r *articleRepoImpl) GetArticlesByIDs(ctx context.Context, ids []uint) ([]models.Article, error) {
+	var articles []models.Article
+	if err := r.db.WithContext(ctx).Preload("Category").Preload("Tags").
+		Where("id IN ?", ids).Omit("Content").Find(&articles).Error; err != nil {
+		return nil, err
+	}
+	return articles, nil
 }
 
 func (r *articleRepoImpl) DeleteArticle(ctx context.Context, article *models.Article) error {

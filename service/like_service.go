@@ -2,11 +2,9 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"gggvrm/models"
-	"gggvrm/mq"
 	"gggvrm/repository"
 	"gggvrm/utils"
 	"log"
@@ -110,20 +108,20 @@ func (s *likeServiceImpl) LikeArticle(ctx context.Context, articleIDStr string, 
 		return "0", errors.New("点赞失败")
 	}
 
-	msgData, _ := json.Marshal(map[string]interface{}{
-		"action":         "like_article",
-		"article_id":     articleID,
-		"user_id":        userID, // 新增：谁点的赞（核心参数）
-		"AuthorUsername": article.User.Username,
-		"timestamp":      time.Now().Unix(), // 新增：事件发生时间
-	})
-
-	// 使用你之前在 mq/producer.go 中封装好的函数
-	err = mq.PublishMessage("like_tasks", msgData)
-	if err != nil {
-		// 发送失败只需打日志，千万别 return err，不能因为发消息失败导致用户的点赞操作失败（保证核心主流程可用）
-		log.Printf("【RabbitMQ警告】发送点赞消息失败: %v\n", err)
-	}
+	//msgData, _ := json.Marshal(map[string]interface{}{
+	//	"action":         "like_article",
+	//	"article_id":     articleID,
+	//	"user_id":        userID, // 新增：谁点的赞（核心参数）
+	//	"AuthorUsername": article.User.Username,
+	//	"timestamp":      time.Now().Unix(), // 新增：事件发生时间
+	//})
+	//
+	//// 使用你之前在 mq/producer.go 中封装好的函数
+	//err = mq.PublishMessage("like_tasks", msgData)
+	//if err != nil {
+	//	// 发送失败只需打日志，千万别 return err，不能因为发消息失败导致用户的点赞操作失败（保证核心主流程可用）
+	//	log.Printf("【RabbitMQ警告】发送点赞消息失败: %v\n", err)
+	//}
 
 	return strconv.Itoa(int(newLikes)), nil
 }

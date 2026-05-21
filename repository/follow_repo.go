@@ -16,6 +16,7 @@ type FollowRepository interface {
 	GetFollowersCount(ctx context.Context, userID uint) (int64, error)                                 // 获取用户的粉丝数
 	GetFollowing(ctx context.Context, userID uint, offset, pageSize int) ([]models.User, int64, error) // 分页获取用户的关注列表
 	GetFollowers(ctx context.Context, userID uint, offset, pageSize int) ([]models.User, int64, error) // 分页获取用户的粉丝列表
+	GetUsername(ctx context.Context, userID uint) (string, error)                                      // 查询用户的用户名（轻量级）
 }
 
 type followRepoImpl struct {
@@ -99,6 +100,17 @@ func (r *followRepoImpl) GetFollowing(ctx context.Context, userID uint, offset, 
 	}
 
 	return users, total, nil
+}
+
+// GetUsername 查询用户的用户名（轻量级，仅查 username 字段）
+func (r *followRepoImpl) GetUsername(ctx context.Context, userID uint) (string, error) {
+	var username string
+	err := r.db.WithContext(ctx).
+		Table("users").
+		Select("username").
+		Where("id = ?", userID).
+		Scan(&username).Error
+	return username, err
 }
 
 // GetFollowers 通过中间表关联查询用户的粉丝列表，支持分页

@@ -17,6 +17,7 @@ type Controllers struct {
 	CateCtrl    *controllers.CateController
 	FavCtrl     *controllers.FavoriteController
 	FollowCtrl  *controllers.FollowController
+	FeedCtrl    *controllers.FeedController
 }
 
 // Inject 依赖注入装配，像乐高积木一样一层层组装
@@ -40,6 +41,7 @@ func Inject() *Controllers {
 	cateService := service.NewCateService(cateRepo, global.RedisDB)
 	favService := service.NewFavoriteService(favRepo, global.RedisDB)
 	followService := service.NewFollowService(followRepo, global.RedisDB)
+	feedService := service.NewFeedService(articleRepo, global.RedisDB)
 
 	// Controller 层：拿到 Service
 	return &Controllers{
@@ -51,5 +53,6 @@ func Inject() *Controllers {
 		CateCtrl:    controllers.NewCateController(cateService),
 		FavCtrl:     controllers.NewFavoriteController(favService),
 		FollowCtrl:  controllers.NewFollowController(followService),
+		FeedCtrl:    controllers.NewFeedController(feedService),
 	}
 }

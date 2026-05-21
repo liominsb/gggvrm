@@ -14,6 +14,7 @@ type FavoriteRepository interface {
 	IsFavorited(ctx context.Context, userID, articleID uint) (bool, error)                                    // 查询用户是否已收藏该文章
 	GetFavoriteCount(ctx context.Context, articleID uint) (int64, error)                                      // 获取文章的收藏总数
 	GetUserFavorites(ctx context.Context, userID uint, offset, pageSize int) ([]models.Article, int64, error) // 分页获取用户的收藏列表
+	GetArticleAuthorUsername(ctx context.Context, articleID uint) (string, error)                             // 查询文章作者的用户名（轻量级，仅查 username）
 }
 
 type favoriteRepoImpl struct {
@@ -90,4 +91,16 @@ func (r *favoriteRepoImpl) GetUserFavorites(ctx context.Context, userID uint, of
 	}
 
 	return articles, total, nil
+}
+
+// GetArticleAuthorUsername 查询文章作者的用户名（轻量级，仅查 username 字段）
+func (r *favoriteRepoImpl) GetArticleAuthorUsername(ctx context.Context, articleID uint) (string, error) {
+	var username string
+	err := r.db.WithContext(ctx).
+		Table("articles").
+		Select("users.username").
+		Joins("JOIN users ON users.id = articles.user_id").
+		Where("articles.id = ?", articleID).
+		Scan(&username).Error
+	return username, err
 }

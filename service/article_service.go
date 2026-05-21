@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"gggvrm/models"
+	"gggvrm/mq"
 	"gggvrm/repository"
 	"gggvrm/utils"
 	"log"
@@ -100,6 +102,18 @@ func (s *articleServiceImpl) CreateArticle(ctx context.Context, article *models.
 	}
 
 	s.clearArticlesCache(ctx)
+
+	// 通过 MQ 异步推送 Feed 流给作者的所有粉丝
+	msgData, _ := json.Marshal(map[string]interface{}{
+		"action":     "create_article",
+		"article_id": article.ID,
+		"user_id":    article.UserID,
+		"timestamp":  time.Now().Unix(),
+	})
+	if err := mq.PublishMessage("article_tasks", msgData); err != nil {
+		log.Printf("【RabbitMQ警告】发送文章消息失败: %v", err)
+	}
+
 	return nil
 }
 

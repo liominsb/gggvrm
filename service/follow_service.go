@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"gggvrm/models"
-	"gggvrm/mq"
 	"gggvrm/repository"
 	"gggvrm/utils"
 	"log"
@@ -117,18 +116,21 @@ func (s *followServiceImpl) ToggleFollow(ctx context.Context, followeeIDStr stri
 	// 设置关注状态缓存
 	s.redisClient.Set(ctx, isFollowKey, 1, utils.RandomExpiration(10*time.Minute))
 
-	// 通过 MQ 异步通知被关注者
-	msgData, _ := json.Marshal(map[string]interface{}{
-		"action":      "follow_user",
-		"follower_id": followerID,
-		"followee_id": followeeID,
-		"timestamp":   time.Now().Unix(),
-	})
-
-	err = mq.PublishMessage("follow_tasks", msgData)
-	if err != nil {
-		log.Printf("【RabbitMQ警告】发送关注消息失败: %v\n", err)
-	}
+	//// 消息体富化：生产者查好用户名，消费者零查库
+	//followerUsername, _ := s.followRepo.GetUsername(ctx, followerID)
+	//
+	//msgData, _ := json.Marshal(map[string]interface{}{
+	//	"action":            "follow_user",
+	//	"follower_id":       followerID,
+	//	"follower_username": followerUsername,
+	//	"followee_id":       followeeID,
+	//	"timestamp":         time.Now().Unix(),
+	//})
+	//
+	//err = mq.PublishMessage("follow_tasks", msgData)
+	//if err != nil {
+	//	log.Printf("【RabbitMQ警告】发送关注消息失败: %v\n", err)
+	//}
 
 	return true, nil
 }
