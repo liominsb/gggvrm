@@ -299,10 +299,10 @@ func (s *articleServiceImpl) DelArticle(ctx context.Context, articleID string, u
 		time.Sleep(100 * time.Millisecond) //延时
 
 		// 第二次删除缓存
-		s.clearArticlesCache(ctx)
-		s.redisClient.Del(ctx, fmt.Sprintf("article:detail:%s", articleID))
-		s.redisClient.Del(ctx, fmt.Sprintf("article:%s:comments", articleID))
-		s.redisClient.Del(ctx, fmt.Sprintf("article:%s:likes", articleID))
+		s.clearArticlesCache(context.Background())
+		s.redisClient.Del(context.Background(), fmt.Sprintf("article:detail:%s", articleID))
+		s.redisClient.Del(context.Background(), fmt.Sprintf("article:%s:comments", articleID))
+		s.redisClient.Del(context.Background(), fmt.Sprintf("article:%s:likes", articleID))
 	}()
 
 	return nil

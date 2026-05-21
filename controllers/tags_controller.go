@@ -26,6 +26,8 @@ func (c *TagsController) CreateTag(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBind(&input); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
+		return
 	}
 
 	tag := &models.Tag{

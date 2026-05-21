@@ -129,5 +129,5 @@ func (s *feedServiceImpl) GetUserFeed(ctx context.Context, userID uint, page, pa
 	return result, total, nil
 }
 
-// Ensure the service satisfies the interface at compile time
+// 确保服务在编译时满足接口需求
 var _ FeedService = (*feedServiceImpl)(nil)

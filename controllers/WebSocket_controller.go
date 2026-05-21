@@ -25,7 +25,7 @@ var upgrader = websocket.Upgrader{
 
 // 处理客户端发起的 WebSocket 连接请求
 func HandleConnections(ctx *gin.Context) {
-	val, ok := ctx.Get("ID")
+	val, ok := ctx.Get("Username")
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "用户未登录或身份已过期"})
 		return
