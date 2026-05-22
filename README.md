@@ -80,7 +80,7 @@ JWT 中包含以下 Claims：
 | UserID | uint | 作者 ID（外键） |
 | User | User | 作者信息 |
 | CoverImg | string | 封面图 URL |
-| CategoryID | uint | 分类 ID |
+| CategoryID | *uint | 分类 ID |
 | Category | Category | 分类信息 |
 | Tags | []Tag | 标签列表（多对多） |
 | Comments | []Comment | 评论列表 |
@@ -333,7 +333,7 @@ PUT /api/v1/user
 #### 3.1 创建文章
 
 ```
-POST /api/v1/article
+POST /api/v1/articles
 ```
 
 **请求体：**

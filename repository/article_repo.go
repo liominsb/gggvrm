@@ -14,7 +14,7 @@ type ArticleRepository interface {
 	GetArticlesByIDs(ctx context.Context, ids []uint) ([]models.Article, error)
 	DeleteArticle(ctx context.Context, article *models.Article) error
 	UpdateArticle(ctx context.Context, article *models.Article, updateData map[string]interface{}) error
-	GetArticlesWithPagination(ctx context.Context, articles *[]models.Article, offset, pageSize int, categoryID, tagID int, keyword string) (int64, error)
+	GetArticlesWithPagination(ctx context.Context, articles *[]models.Article, offset, pageSize int, categoryID, tagID int, keyword string, userID uint) (int64, error)
 	GetArticlesByCursor(ctx context.Context, articles *[]models.Article, cursor uint64, limit int) error
 	GetTagsByIDs(ctx context.Context, tags *[]models.Tag, ids []uint) error
 	ReplaceArticleTags(ctx context.Context, article *models.Article, tags []models.Tag) error
@@ -38,12 +38,12 @@ func (r *articleRepoImpl) GetArticleByID(ctx context.Context, article *models.Ar
 }
 
 func (r *articleRepoImpl) GetArticleByIDWithPreload(ctx context.Context, article *models.Article, id string) error {
-	return r.db.WithContext(ctx).Preload("Category").Preload("Tags").Where("id = ?", id).First(article).Error
+	return r.db.WithContext(ctx).Preload("Category").Preload("Tags").Preload("User").Where("id = ?", id).First(article).Error
 }
 
 func (r *articleRepoImpl) GetArticlesByIDs(ctx context.Context, ids []uint) ([]models.Article, error) {
 	var articles []models.Article
-	if err := r.db.WithContext(ctx).Preload("Category").Preload("Tags").
+	if err := r.db.WithContext(ctx).Preload("Category").Preload("Tags").Preload("User").
 		Where("id IN ?", ids).Omit("Content").Find(&articles).Error; err != nil {
 		return nil, err
 	}
@@ -58,8 +58,13 @@ func (r *articleRepoImpl) UpdateArticle(ctx context.Context, article *models.Art
 	return r.db.WithContext(ctx).Model(article).Preload("Category").Preload("Tags").Updates(updateData).Find(article).Error
 }
 
-func (r *articleRepoImpl) GetArticlesWithPagination(ctx context.Context, articles *[]models.Article, offset, pageSize int, categoryID, tagID int, keyword string) (int64, error) {
+func (r *articleRepoImpl) GetArticlesWithPagination(ctx context.Context, articles *[]models.Article, offset, pageSize int, categoryID, tagID int, keyword string, userID uint) (int64, error) {
 	query := r.db.WithContext(ctx).Model(&models.Article{})
+
+	// 用户过滤
+	if userID > 0 {
+		query = query.Where("articles.user_id = ?", userID)
+	}
 
 	// 分类过滤
 	if categoryID > 0 {
@@ -87,7 +92,7 @@ func (r *articleRepoImpl) GetArticlesWithPagination(ctx context.Context, article
 	*articles = make([]models.Article, 0)
 
 	if total > 0 && int64(offset) < total {
-		if err := query.Preload("Category").Preload("Tags").Omit("Content").
+		if err := query.Preload("Category").Preload("Tags").Preload("User").Omit("Content").
 			Order("articles.id desc").Limit(pageSize).Offset(offset).Find(articles).Error; err != nil {
 			return 0, err
 		}

@@ -31,8 +31,6 @@ func main() {
 
 	go utils.SyncSql(ctx) //同步like数据到数据库
 
-	go controllers.HandleMessages()
-
 	mq.StartConsumers()
 
 	if config.Appconf.Database.SubSwitch {
@@ -40,6 +38,8 @@ func main() {
 	} else {
 		global.Me = global.NewLocalBroker()
 	}
+
+	go controllers.HandleMessages()
 
 	srv := &http.Server{
 		Addr:    Port,

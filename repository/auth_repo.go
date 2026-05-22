@@ -12,6 +12,7 @@ type AuthRepository interface {
 	GetUserByUsername(ctx context.Context, user *models.User, username string) error
 	GetUserByID(ctx context.Context, user *models.User, userID uint) error
 	UpdatePassword(ctx context.Context, userID uint, hashedPassword string) error
+	UpdateProfile(ctx context.Context, userID uint, username string) error
 }
 
 type authRepoImpl struct {
@@ -30,10 +31,19 @@ func (r *authRepoImpl) GetUserByUsername(ctx context.Context, user *models.User,
 	return r.db.WithContext(ctx).Where("username = ?", username).First(user).Error
 }
 
+// 按ID获取用户
 func (r *authRepoImpl) GetUserByID(ctx context.Context, user *models.User, userID uint) error {
-	return r.db.WithContext(ctx).Where("id = ?", userID).First(user).Error
+	return r.db.WithContext(ctx).
+		Preload("Articles").
+		Preload("Favorites").
+		Preload("Followers").
+		Where("id = ?", userID).First(user).Error
 }
 
 func (r *authRepoImpl) UpdatePassword(ctx context.Context, userID uint, hashedPassword string) error {
 	return r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("password", hashedPassword).Error
+}
+
+func (r *authRepoImpl) UpdateProfile(ctx context.Context, userID uint, username string) error {
+	return r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("username", username).Error
 }

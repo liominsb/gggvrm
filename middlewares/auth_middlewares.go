@@ -15,12 +15,16 @@ import (
 func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := ctx.GetHeader("Authorization")
-		if token == "" || !strings.HasPrefix(token, "Bearer ") {
+		if token != "" && strings.HasPrefix(token, "Bearer ") {
+			token = token[7:]
+		} else if queryToken := ctx.Query("token"); queryToken != "" {
+			// 支持 WebSocket 等无法设置 Header 的场景，从查询参数获取 token
+			token = queryToken
+		} else {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"错误": "未授权"})
 			ctx.Abort()
 			return
 		}
-		token = token[7:]
 
 		claims, err := utils.ParseToken(token)
 		if err != nil {

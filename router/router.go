@@ -20,7 +20,7 @@ func SetupRouter() *gin.Engine {
 		// 允许哪些域来访问我？这里配置了前端的地址
 		AllowOrigins: []string{"http://localhost:5173"}, // 在你的实际开发中，这里会改成 "http://localhost:5173"
 		// 允许前端使用哪些危险方法？(解决预检请求问题)
-		AllowMethods: []string{"GET", "POST", "OPTIONS"},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		// 允许前端携带哪些特殊的请求头？
 		AllowHeaders: []string{"Origin", "Authorization", "Content-Type"},
 		// 允许前端读取哪些额外的响应头？
@@ -47,7 +47,7 @@ func SetupRouter() *gin.Engine {
 		api.GET("/user/:id", ctrls.AuthCtrl.GetUserProfileById)
 		api.PUT("/user", ctrls.AuthCtrl.Changepassword)
 
-		api.POST("/article", ctrls.ArticleCtrl.CreateArticle)
+		api.POST("/articles", ctrls.ArticleCtrl.CreateArticle)
 		api.DELETE("/article/:id", ctrls.ArticleCtrl.DelArticle)
 		api.GET("/articles", ctrls.ArticleCtrl.GetArticles)
 		api.GET("/article/:id", ctrls.ArticleCtrl.GetArticlesByID)
@@ -76,6 +76,7 @@ func SetupRouter() *gin.Engine {
 		api.GET("/article/:id/favorite", ctrls.FavCtrl.GetFavoriteStatus)
 		api.GET("/article/:id/favorites/count", ctrls.FavCtrl.GetFavoriteCount)
 		api.GET("/user/favorites", ctrls.FavCtrl.GetUserFavorites)
+		api.GET("/user/:id/favorites", ctrls.FavCtrl.GetUserFavoritesById)
 
 		api.POST("/user/:id/follow", ctrls.FollowCtrl.ToggleFollow)
 		api.GET("/user/:id/follow", ctrls.FollowCtrl.GetFollowStatus)

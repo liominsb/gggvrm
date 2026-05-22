@@ -26,6 +26,7 @@ type ArticleListResponse struct {
 	Likes        int       `json:"likes"`
 	Views        int       `json:"views"`
 	UserID       uint      `json:"user_id"`
+	Username     string    `json:"username"`      // 附加作者用户名
 	CategoryName string    `json:"category_name"` // 附加分类名
 	Tags         []string  `json:"tags"`          // 附加标签数组
 	CoverImg     string    `json:"cover_img"`     // 封面图的 URL
@@ -40,7 +41,7 @@ type ArticleCache struct {
 
 type ArticleService interface {
 	CreateArticle(ctx context.Context, article *models.Article, tagIDs []uint) error
-	GetArticles(ctx context.Context, page, pageSize, categoryID, tagID int, keyword string) (*ArticleCache, int, int, int64, error)
+	GetArticles(ctx context.Context, page, pageSize, categoryID, tagID int, keyword string, userID uint) (*ArticleCache, int, int, int64, error)
 	GetArticlesByID(ctx context.Context, id string) (*models.Article, []models.Comment, string, error)
 	DelArticle(ctx context.Context, articleID string, userID uint) error
 	UpdateArticle(ctx context.Context, articleID string, userID uint, input struct {
@@ -117,7 +118,7 @@ func (s *articleServiceImpl) CreateArticle(ctx context.Context, article *models.
 	return nil
 }
 
-func (s *articleServiceImpl) GetArticles(ctx context.Context, page, pageSize, categoryID, tagID int, keyword string) (*ArticleCache, int, int, int64, error) {
+func (s *articleServiceImpl) GetArticles(ctx context.Context, page, pageSize, categoryID, tagID int, keyword string, userID uint) (*ArticleCache, int, int, int64, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -131,12 +132,12 @@ func (s *articleServiceImpl) GetArticles(ctx context.Context, page, pageSize, ca
 		pageSize = 100
 	}
 
-	dynamicCacheKey := fmt.Sprintf("articles:page:%d:size:%d:cat:%d:tag:%d", page, pageSize, categoryID, tagID)
+	dynamicCacheKey := fmt.Sprintf("articles:page:%d:size:%d:cat:%d:tag:%d:user:%d", page, pageSize, categoryID, tagID, userID)
 
 	cacheObj, err := utils.GetCacheOrQuery(ctx, s.redisClient, dynamicCacheKey, func() (*ArticleCache, error) {
 		offset := (page - 1) * pageSize
 		var articles []models.Article
-		total, err := s.articleRepo.GetArticlesWithPagination(ctx, &articles, offset, pageSize, categoryID, tagID, keyword)
+		total, err := s.articleRepo.GetArticlesWithPagination(ctx, &articles, offset, pageSize, categoryID, tagID, keyword, userID)
 		if err != nil {
 			return nil, err
 		}
@@ -158,6 +159,10 @@ func (s *articleServiceImpl) GetArticles(ctx context.Context, page, pageSize, ca
 			if a.Category != nil {
 				categoryName = a.Category.Name
 			}
+			var username string
+			if a.User != nil {
+				username = a.User.Username
+			}
 			response = append(response, ArticleListResponse{
 				ID:           a.ID,
 				Title:        a.Title,
@@ -165,6 +170,7 @@ func (s *articleServiceImpl) GetArticles(ctx context.Context, page, pageSize, ca
 				Likes:        a.Likes,
 				Views:        a.Views,
 				UserID:       a.UserID,
+				Username:     username,
 				CategoryName: categoryName,
 				Tags:         tagNames,
 				CoverImg:     a.CoverImg,

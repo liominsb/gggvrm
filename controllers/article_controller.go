@@ -1,8 +1,10 @@
 package controllers // Package controllers 控制器
 
 import (
+	"bytes"
 	"gggvrm/models"
 	"gggvrm/service"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -27,7 +29,7 @@ func (c *ArticleController) CreateArticle(ctx *gin.Context) {
 		Title      string `json:"title" binding:"required"`
 		Content    string `json:"content" binding:"required"`
 		Preview    string `json:"preview" binding:"required"`
-		CategoryID uint   `json:"category_id"` // 新增分类 ID
+		CategoryID *uint  `json:"category_id"` // 新增分类 ID
 		TagIDs     []uint `json:"tag_ids"`     // 新增标签 ID 数组
 		CoverImg   string `json:"cover_img"`   //【新增】封面图的 URL
 	}
@@ -37,8 +39,11 @@ func (c *ArticleController) CreateArticle(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "用户未登录或身份已过期"})
 		return
 	}
+	bodyBytes, _ := io.ReadAll(ctx.Request.Body)
+	ctx.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
+		log.Printf("绑定失败，原始 JSON: %s", string(bodyBytes))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -67,12 +72,14 @@ func (c *ArticleController) GetArticles(ctx *gin.Context) {
 	categoryIDStr := ctx.Query("category_id") // 新增：获取分类筛选参数
 	tagIDStr := ctx.Query("tag_id")           // 新增：获取标签筛选参数
 	keyword := ctx.Query("keyword")           // 新增：获取搜索关键词参数
+	userIDStr := ctx.Query("user_id")         // 新增：按用户ID筛选
 	page, _ := strconv.Atoi(pageStr)
 	pageSize, _ := strconv.Atoi(pageSizeStr)
 	categoryID, _ := strconv.Atoi(categoryIDStr)
 	tagID, _ := strconv.Atoi(tagIDStr)
+	userID, _ := strconv.Atoi(userIDStr)
 
-	cacheObj, page, pageSize, total, err := c.articleService.GetArticles(ctx.Request.Context(), page, pageSize, categoryID, tagID, keyword)
+	cacheObj, page, pageSize, total, err := c.articleService.GetArticles(ctx.Request.Context(), page, pageSize, categoryID, tagID, keyword, uint(userID))
 	if err != nil {
 		if err.Error() == "请求页码超出最大支持范围" {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

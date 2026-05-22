@@ -74,6 +74,8 @@ func initDB() {
 		&models.Comment{},
 		&models.Tag{},
 		&models.Category{},
+		&models.UserArticleFavor{},
+		&models.UserFollow{},
 	)
 	if err != nil {
 		log.Fatalf("数据库表结构同步失败: %v", err)

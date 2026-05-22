@@ -28,7 +28,7 @@ type Article struct {
 	CoverImg string    `json:"cover_img"`                                                         //【新增】封面图的 URL
 	Comments []Comment `json:"comments" gorm:"foreignKey:ArticleID;constraint:OnDelete:CASCADE;"` //评论
 
-	CategoryID uint      `json:"category_id" gorm:"index:idx_category_id"` // 记录分类的 ID
+	CategoryID *uint     `json:"category_id" gorm:"index:idx_category_id"` // 记录分类的 ID
 	Category   *Category `json:"category" gorm:"foreignKey:CategoryID"`    //类别
 
 	Tags []Tag `json:"tags" gorm:"many2many:article_tags;"`

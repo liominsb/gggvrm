@@ -81,7 +81,7 @@ func (c *FavoriteController) GetFavoriteCount(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"favorites": count})
 }
 
-// GetUserFavorites 获取用户收藏列表
+// GetUserFavorites 获取当前登录用户的收藏列表
 func (c *FavoriteController) GetUserFavorites(ctx *gin.Context) {
 	userID, ex := ctx.Get("ID")
 	if !ex {
@@ -95,6 +95,37 @@ func (c *FavoriteController) GetUserFavorites(ctx *gin.Context) {
 	pageSize, _ := strconv.Atoi(pageSizeStr)
 
 	articles, total, err := c.favoriteService.GetUserFavorites(ctx.Request.Context(), userID.(uint), page, pageSize)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	totalPages := (total + int64(pageSize) - 1) / int64(pageSize)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data":        articles,
+		"total":       total,
+		"page":        page,
+		"page_size":   pageSize,
+		"total_pages": totalPages,
+	})
+}
+
+// GetUserFavoritesById 根据用户ID获取收藏列表（可查看其他用户的收藏）
+func (c *FavoriteController) GetUserFavoritesById(ctx *gin.Context) {
+	targetIDStr := ctx.Param("id")
+	targetID, err := strconv.Atoi(targetIDStr)
+	if err != nil || targetID <= 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
+		return
+	}
+
+	pageStr := ctx.DefaultQuery("page", "1")
+	pageSizeStr := ctx.DefaultQuery("page_size", "10")
+	page, _ := strconv.Atoi(pageStr)
+	pageSize, _ := strconv.Atoi(pageSizeStr)
+
+	articles, total, err := c.favoriteService.GetUserFavorites(ctx.Request.Context(), uint(targetID), page, pageSize)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

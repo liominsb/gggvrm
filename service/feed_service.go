@@ -112,6 +112,10 @@ func (s *feedServiceImpl) GetUserFeed(ctx context.Context, userID uint, page, pa
 			categoryName = a.Category.Name
 		}
 
+		var username string
+		if a.User != nil {
+			username = a.User.Username
+		}
 		result = append(result, ArticleListResponse{
 			ID:           a.ID,
 			Title:        a.Title,
@@ -119,6 +123,7 @@ func (s *feedServiceImpl) GetUserFeed(ctx context.Context, userID uint, page, pa
 			Likes:        a.Likes,
 			Views:        a.Views,
 			UserID:       a.UserID,
+			Username:     username,
 			CategoryName: categoryName,
 			Tags:         tagNames,
 			CoverImg:     a.CoverImg,
