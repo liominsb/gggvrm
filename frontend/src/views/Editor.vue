@@ -132,6 +132,25 @@
           </div>
         </el-form-item>
 
+        <!-- Category -->
+        <el-form-item label="分类" prop="category_id">
+          <el-select
+            v-model="form.category_id"
+            placeholder="请选择文章分类"
+            filterable
+            clearable
+            size="default"
+            style="max-width: 400px"
+          >
+            <el-option
+              v-for="cat in categories"
+              :key="cat.id"
+              :label="cat.name"
+              :value="cat.id"
+            />
+          </el-select>
+        </el-form-item>
+
         <!-- Content Editor -->
         <el-form-item label="文章内容" prop="content">
           <div class="content-editor">
@@ -232,7 +251,7 @@ import { tagsApi } from '@/api/tags'
 import { uploadApi } from '@/api/upload'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
-import type { Tag } from '@/types/common'
+import type { Tag, Category } from '@/types/common'
 import {
   EditPen,
   Delete,
@@ -258,6 +277,7 @@ const newTagName = ref('')
 const creatingTag = ref(false)
 const suggestedTags = ref<Tag[]>([])
 const allTags = ref<Tag[]>([])
+const categories = ref<Category[]>([])
 
 const articleId = computed(() => String(route.params.id ?? route.params.slug ?? ''))
 const isEditing = computed(() => !!articleId.value)
@@ -487,6 +507,16 @@ const fetchArticleForEdit = async () => {
   }
 }
 
+/** 获取所有分类 */
+const fetchAllCategories = async () => {
+  try {
+    const list = await tagsApi.getCategories()
+    categories.value = list
+  } catch {
+    // ignore
+  }
+}
+
 /** 获取所有标签 */
 const fetchAllTags = async () => {
   try {
@@ -617,6 +647,7 @@ onMounted(() => {
     loadDraft()
   }
   fetchAllTags()
+  fetchAllCategories()
 })
 </script>
 
