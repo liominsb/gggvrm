@@ -39,8 +39,13 @@ func SetupRouter() *gin.Engine {
 		auth.POST("register", ctrls.AuthCtrl.Register)
 		auth.POST("refreshTokens", ctrls.AuthCtrl.RefreshTokens)
 	}
-
 	api := r.Group("/api/v1")
+	{
+		api.GET("/articles", ctrls.ArticleCtrl.GetArticles)
+		api.GET("/categories", ctrls.CateCtrl.GetCates)
+		api.GET("/tags", ctrls.TagsCtrl.GetTags)
+	}
+	api = r.Group("/api/v1")
 	api.Use(middlewares.AuthMiddleware())
 	{
 		api.GET("/user", ctrls.AuthCtrl.Getmyuser)
@@ -50,7 +55,7 @@ func SetupRouter() *gin.Engine {
 
 		api.POST("/articles", ctrls.ArticleCtrl.CreateArticle)
 		api.DELETE("/article/:id", ctrls.ArticleCtrl.DelArticle)
-		api.GET("/articles", ctrls.ArticleCtrl.GetArticles)
+		//api.GET("/articles", ctrls.ArticleCtrl.GetArticles)
 		api.GET("/article/:id", ctrls.ArticleCtrl.GetArticlesByID)
 		api.PUT("/article/:id", ctrls.ArticleCtrl.UpdateArticle)
 		api.GET("/articles/cursor", ctrls.ArticleCtrl.GetArticlesByCursor)
@@ -65,11 +70,11 @@ func SetupRouter() *gin.Engine {
 
 		api.POST("/upload", controllers.UploadImage)
 
-		api.GET("/tags", ctrls.TagsCtrl.GetTags)
+		//api.GET("/tags", ctrls.TagsCtrl.GetTags)
 		api.POST("/tag", ctrls.TagsCtrl.CreateTag)
 		api.DELETE("/tag/:id", ctrls.TagsCtrl.DeleteTag)
 
-		api.GET("/categories", ctrls.CateCtrl.GetCates)
+		//api.GET("/categories", ctrls.CateCtrl.GetCates)
 		api.POST("/category", ctrls.CateCtrl.CreateCate)
 		api.DELETE("/category/:id", ctrls.CateCtrl.DeleteCate)
 

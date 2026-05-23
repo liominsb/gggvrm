@@ -4,7 +4,6 @@
       <template v-if="profileUser">
         <!-- Profile Header -->
         <div class="profile-header">
-          <div class="profile-cover-bg"></div>
           <div class="profile-info">
             <el-avatar
               :size="88"
@@ -674,24 +673,16 @@ onActivated(() => {
 .main-container {
   max-width: 900px;
   margin: 0 auto;
-  padding: 0 24px 48px;
+  padding: 32px 24px 48px;
 }
 
 .profile-header {
   margin-bottom: 32px;
 
-  .profile-cover-bg {
-    height: 160px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 0 0 20px 20px;
-    margin: 0 -24px;
-  }
-
   .profile-info {
     display: flex;
     align-items: flex-start;
     gap: 20px;
-    margin-top: -44px;
     padding: 0 16px;
     flex-wrap: wrap;
   }
@@ -705,7 +696,7 @@ onActivated(() => {
   .profile-details {
     flex: 1;
     min-width: 0;
-    padding-top: 48px;
+    padding-top: 12px;
 
     .profile-username {
       font-size: 26px;
@@ -748,7 +739,7 @@ onActivated(() => {
   .profile-actions {
     display: flex;
     gap: 12px;
-    padding-top: 48px;
+    padding-top: 12px;
   }
 }
 
@@ -945,10 +936,6 @@ onActivated(() => {
 
 @media (max-width: 768px) {
   .profile-header {
-    .profile-cover-bg {
-      height: 120px;
-    }
-
     .profile-info {
       flex-direction: column;
       align-items: center;

@@ -1,16 +1,5 @@
 <template>
   <div class="chat-page">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">
-          <el-icon><ChatDotRound /></el-icon>
-          聊天室
-        </h1>
-        <p class="page-desc">实时在线交流，分享你的想法</p>
-      </div>
-    </div>
-
     <div class="main-container">
       <!-- Not Logged In State -->
       <div v-if="!isLoggedIn" class="login-prompt">
@@ -272,38 +261,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
-.page-header {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  padding: 40px 0;
-  margin-bottom: 0;
-
-  .header-content {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 0 24px;
-  }
-
-  .page-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 32px;
-    font-weight: 700;
-    color: #fff;
-    margin: 0 0 8px;
-  }
-
-  .page-desc {
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.85);
-    margin: 0;
-  }
-}
-
 .main-container {
   max-width: 900px;
   margin: 0 auto;
-  padding: 0 24px 48px;
+  padding: 32px 24px 48px;
 }
 
 .login-prompt {
@@ -351,7 +312,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 260px);
+  height: calc(100vh - 140px);
   min-height: 480px;
 }
 
@@ -616,16 +577,8 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 768px) {
-  .page-header {
-    padding: 28px 0;
-
-    .page-title {
-      font-size: 24px;
-    }
-  }
-
   .chat-container {
-    height: calc(100vh - 220px);
+    height: calc(100vh - 100px);
     min-height: 400px;
     border-radius: 12px;
   }

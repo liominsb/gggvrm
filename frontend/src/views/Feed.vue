@@ -1,16 +1,5 @@
 <template>
   <div class="feed-page">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">
-          <el-icon><Compass /></el-icon>
-          我的关注
-        </h1>
-        <p class="page-desc">查看你关注的作者发布的最新文章</p>
-      </div>
-    </div>
-
     <div class="main-container">
       <!-- Not Logged In State -->
       <div v-if="!isLoggedIn" class="login-prompt">
@@ -131,7 +120,6 @@ import { useArticleStore } from '@/stores/article'
 import { useAuthStore } from '@/stores/auth'
 import type { ArticleListItem } from '@/types/article'
 import {
-  Compass,
   UserFilled,
   Star,
   Picture,
@@ -220,38 +208,10 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.page-header {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  padding: 40px 0;
-  margin-bottom: 32px;
-
-  .header-content {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 24px;
-  }
-
-  .page-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 32px;
-    font-weight: 700;
-    color: #fff;
-    margin: 0 0 8px;
-  }
-
-  .page-desc {
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.85);
-    margin: 0;
-  }
-}
-
 .main-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 0 24px 48px;
+  padding: 32px 24px 48px;
 }
 
 .login-prompt {
@@ -459,14 +419,6 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .page-header {
-    padding: 28px 0;
-
-    .page-title {
-      font-size: 24px;
-    }
-  }
-
   .feed-card {
     padding: 16px;
 

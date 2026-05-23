@@ -1,11 +1,6 @@
 <template>
   <header class="app-header">
     <div class="header-container">
-      <!-- Logo -->
-      <router-link to="/" class="logo">
-        <span class="logo-text">BlogHub</span>
-      </router-link>
-
       <!-- Desktop Navigation -->
       <nav class="nav-links">
         <router-link to="/" class="nav-link" :class="{ active: $route.path === '/' }">
@@ -144,22 +139,8 @@ const handleCommand = (command: string) => {
   height: 60px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 24px;
-}
-
-.logo {
-  text-decoration: none;
-  flex-shrink: 0;
-
-  .logo-text {
-    font-size: 22px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
 }
 
 .nav-links {

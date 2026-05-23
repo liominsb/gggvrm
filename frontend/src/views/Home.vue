@@ -1,13 +1,5 @@
 <template>
   <div class="home-page">
-    <!-- Hero Banner -->
-    <div class="hero-banner">
-      <div class="hero-content">
-        <h1 class="hero-title">BlogHub</h1>
-        <p class="hero-subtitle">分享你的想法，探索无限可能</p>
-      </div>
-    </div>
-
     <div class="main-container">
       <el-row :gutter="24">
         <!-- Main Content -->
@@ -363,37 +355,10 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.hero-banner {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 48px 0;
-  text-align: center;
-  margin-bottom: 32px;
-
-  .hero-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 24px;
-  }
-
-  .hero-title {
-    font-size: 42px;
-    font-weight: 700;
-    color: #fff;
-    margin: 0 0 12px;
-    letter-spacing: 2px;
-  }
-
-  .hero-subtitle {
-    font-size: 18px;
-    color: rgba(255, 255, 255, 0.85);
-    margin: 0;
-  }
-}
-
 .main-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px 48px;
+  padding: 32px 24px 48px;
 }
 
 .active-filter {
@@ -678,18 +643,6 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .hero-banner {
-    padding: 32px 0;
-
-    .hero-title {
-      font-size: 28px;
-    }
-
-    .hero-subtitle {
-      font-size: 15px;
-    }
-  }
-
   .article-card {
     padding: 16px;
 
