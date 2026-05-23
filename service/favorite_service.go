@@ -66,6 +66,8 @@ func (s *favoriteServiceImpl) ToggleFavorite(ctx context.Context, articleIDStr s
 		if newCount < 0 {
 			s.redisClient.Set(ctx, favKey, 0, utils.RandomExpiration(10*time.Minute))
 		}
+		s.redisClient.Del(ctx, isFavKey)
+		s.clearUserFavoriteListCache(ctx, userID)
 
 		// 清除用户收藏状态缓存
 		s.redisClient.Del(ctx, isFavKey)
@@ -96,6 +98,8 @@ func (s *favoriteServiceImpl) ToggleFavorite(ctx context.Context, articleIDStr s
 
 	// Redis 收藏数 +1
 	_, err = s.redisClient.Incr(ctx, favKey).Result()
+	s.redisClient.Set(ctx, isFavKey, 1, utils.RandomExpiration(10*time.Minute))
+	s.clearUserFavoriteListCache(ctx, userID)
 	if err != nil {
 		log.Printf("【警告】Redis 收藏数递增失败 Key: %s, Err: %v", favKey, err)
 	}
@@ -123,6 +127,25 @@ func (s *favoriteServiceImpl) ToggleFavorite(ctx context.Context, articleIDStr s
 }
 
 // IsFavorited 查询收藏状态：先查 Redis 缓存，缓存未命中则查数据库并回写缓存
+func (s *favoriteServiceImpl) clearUserFavoriteListCache(ctx context.Context, userID uint) {
+	var cursor uint64
+	pattern := fmt.Sprintf("user:%d:favorites:page:*", userID)
+	for {
+		keys, nextCursor, err := s.redisClient.Scan(ctx, cursor, pattern, 100).Result()
+		if err != nil {
+			log.Printf("clear user favorite cache failed, userID=%d: %v", userID, err)
+			return
+		}
+		if len(keys) > 0 {
+			s.redisClient.Del(ctx, keys...)
+		}
+		if nextCursor == 0 {
+			return
+		}
+		cursor = nextCursor
+	}
+}
+
 func (s *favoriteServiceImpl) IsFavorited(ctx context.Context, articleIDStr string, userID uint) (bool, error) {
 	articleID, err := strconv.Atoi(articleIDStr)
 	if err != nil || articleID <= 0 {

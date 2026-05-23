@@ -12,7 +12,7 @@ type AuthRepository interface {
 	GetUserByUsername(ctx context.Context, user *models.User, username string) error
 	GetUserByID(ctx context.Context, user *models.User, userID uint) error
 	UpdatePassword(ctx context.Context, userID uint, hashedPassword string) error
-	UpdateProfile(ctx context.Context, userID uint, username string) error
+	UpdateProfile(ctx context.Context, userID uint, username string, image string, bio string) error
 }
 
 type authRepoImpl struct {
@@ -44,6 +44,10 @@ func (r *authRepoImpl) UpdatePassword(ctx context.Context, userID uint, hashedPa
 	return r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("password", hashedPassword).Error
 }
 
-func (r *authRepoImpl) UpdateProfile(ctx context.Context, userID uint, username string) error {
-	return r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("username", username).Error
+func (r *authRepoImpl) UpdateProfile(ctx context.Context, userID uint, username string, image string, bio string) error {
+	return r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"username": username,
+		"image":    image,
+		"bio":      bio,
+	}).Error
 }

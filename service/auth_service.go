@@ -19,6 +19,7 @@ type AuthService interface {
 	GetMyUser(ctx context.Context, userID uint) (*models.User, error)
 	GetUserProfileById(ctx context.Context, targetUserID uint) (*models.User, error)
 	ChangePassword(ctx context.Context, userID uint, oldPassword string, newPassword string) error
+	UpdateProfile(ctx context.Context, userID uint, username string, image string, bio string) error
 	RefreshTokens(ctx context.Context, accountID uint, incomingRT string, username string) (string, string, error)
 }
 
@@ -187,6 +188,18 @@ func (s *authServiceImpl) ChangePassword(ctx context.Context, userID uint, oldPa
 		fmt.Printf("删除缓存失败 UserID: %d, err: %v\n", userID, err)
 	}
 
+	return nil
+}
+
+func (s *authServiceImpl) UpdateProfile(ctx context.Context, userID uint, username string, image string, bio string) error {
+	if err := s.authRepo.UpdateProfile(ctx, userID, username, image, bio); err != nil {
+		return err
+	}
+	// 删除缓存
+	cacheKey := fmt.Sprintf("USER:%d", userID)
+	if err := s.redisClient.Del(ctx, cacheKey).Err(); err != nil {
+		fmt.Printf("删除缓存失败 UserID: %d, err: %v\n", userID, err)
+	}
 	return nil
 }
 

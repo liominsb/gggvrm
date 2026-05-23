@@ -69,8 +69,8 @@ func (r *favoriteRepoImpl) GetUserFavorites(ctx context.Context, userID uint, of
 
 	// 通过中间表关联查询用户收藏的文章
 	query := r.db.WithContext(ctx).
-		Joins("JOIN user_article_favor ON user_article_favor.article_id = articles.id").
-		Where("user_article_favor.user_id = ?", userID)
+		Joins("JOIN user_article_favors ON user_article_favors.article_id = articles.id").
+		Where("user_article_favors.user_id = ?", userID)
 
 	if err := query.Model(&models.Article{}).Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -83,7 +83,7 @@ func (r *favoriteRepoImpl) GetUserFavorites(ctx context.Context, userID uint, of
 		if err := query.
 			Preload("Category").Preload("Tags").
 			Omit("Content").
-			Order("user_article_favor.created_at DESC").
+			Order("user_article_favors.created_at DESC").
 			Limit(pageSize).Offset(offset).
 			Find(&articles).Error; err != nil {
 			return nil, 0, err

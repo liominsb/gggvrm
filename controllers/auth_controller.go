@@ -131,6 +131,41 @@ func (c *AuthController) Changepassword(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "密码修改成功"})
 }
 
+// UpdateProfile 更新个人资料（用户名）
+func (c *AuthController) UpdateProfile(ctx *gin.Context) {
+	id, ok := ctx.Get("ID")
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ID"})
+		return
+	}
+
+	var input struct {
+		Username string `json:"username" binding:"required"`
+		Image    string `json:"image"`
+		Bio      string `json:"bio"`
+	}
+
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := c.authService.UpdateProfile(ctx.Request.Context(), id.(uint), input.Username, input.Image, input.Bio); err != nil {
+		log.Println("更新资料失败:", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 返回更新后的用户信息
+	user, err := c.authService.GetMyUser(ctx.Request.Context(), id.(uint))
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{"message": "更新成功"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"user": user})
+}
+
 func (c *AuthController) RefreshTokens(ctx *gin.Context) {
 
 	var input struct {

@@ -33,7 +33,7 @@ type Article struct {
 
 	Tags []Tag `json:"tags" gorm:"many2many:article_tags;"`
 
-	FavoredBy []User `gorm:"many2many:user_article_favor"` //被哪些用户收藏
+	FavoredBy []User `gorm:"many2many:user_article_favors"` //被哪些用户收藏
 }
 
 type ArticleTags struct {
