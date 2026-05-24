@@ -71,7 +71,11 @@ gggvrm/
 
 ## 认证说明
 
-除 `/api/auth/*` 路由外，所有 `/api/v1/*` 路由均需要 JWT 认证。
+除以下公开接口外，其余 `/api/v1/*` 路由均需要 JWT 认证：
+
+- `GET /api/v1/articles` — 获取文章列表（分页）
+- `GET /api/v1/categories` — 获取所有分类
+- `GET /api/v1/tags` — 获取所有标签
 
 **请求头格式：**
 
