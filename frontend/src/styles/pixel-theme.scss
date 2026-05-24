@@ -1,0 +1,479 @@
+/* ============================================================
+   PIXEL ART RETRO GAMING DESIGN SYSTEM
+   A dark-mode dashboard with 8-bit aesthetic, neon accents,
+   CRT scanlines, and pixel-perfect UI components.
+   ============================================================ */
+
+/* --- Google Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+/* ============================================================
+   1. DESIGN TOKENS — CSS Custom Properties
+   ============================================================ */
+:root {
+  /* --- Color Palette --- */
+  --pixel-bg-deep: #0c0c1d;
+  --pixel-bg-base: #12122a;
+  --pixel-bg-surface: #1a1a36;
+  --pixel-bg-elevated: #222244;
+  --pixel-bg-overlay: #2a2a50;
+
+  /* Accents — pastel-meets-neon */
+  --pixel-accent-mint: #0ff;
+  --pixel-accent-mint-dim: #0aa;
+  --pixel-accent-pink: #ff6b9d;
+  --pixel-accent-pink-dim: #cc5577;
+  --pixel-accent-gold: #ffd700;
+  --pixel-accent-gold-dim: #ccaa00;
+  --pixel-accent-purple: #b388ff;
+  --pixel-accent-purple-dim: #7c4dff;
+
+  /* Semantic */
+  --pixel-success: #69f0ae;
+  --pixel-warning: #ffd740;
+  --pixel-error: #ff5252;
+  --pixel-info: #40c4ff;
+
+  /* Text — tinted, never pure white */
+  --pixel-text-primary: #e8e6f0;
+  --pixel-text-secondary: #b0aec8;
+  --pixel-text-muted: #6e6c80;
+  --pixel-text-accent: var(--pixel-accent-mint);
+
+  /* Borders */
+  --pixel-border-default: #2a2a50;
+  --pixel-border-glow: rgba(0, 255, 255, 0.15);
+  --pixel-border-width: 2px;
+
+  /* --- Typography --- */
+  --pixel-font-display: 'Press Start 2P', 'Courier New', monospace;
+  --pixel-font-body: 'VT323', 'Courier New', monospace;
+  --pixel-font-mono: 'Courier New', monospace;
+
+  /* Modular scale (Press Start 2P base ~8px grid) */
+  --pixel-text-xs: 8px;
+  --pixel-text-sm: 10px;
+  --pixel-text-base: 12px;
+  --pixel-text-lg: 14px;
+  --pixel-text-xl: 18px;
+
+  /* Body text (VT323) */
+  --pixel-body-sm: 16px;
+  --pixel-body-base: 20px;
+  --pixel-body-lg: 24px;
+
+  /* --- Spacing (4pt grid) --- */
+  --pixel-space-xs: 4px;
+  --pixel-space-sm: 8px;
+  --pixel-space-md: 16px;
+  --pixel-space-lg: 24px;
+  --pixel-space-xl: 32px;
+  --pixel-space-2xl: 48px;
+  --pixel-space-3xl: 64px;
+
+  /* --- Layout --- */
+  --pixel-max-width: 1200px;
+  --pixel-header-height: 56px;
+  --pixel-hud-height: 32px;
+  --pixel-radius-sm: 0px;
+  --pixel-radius-md: 0px;
+  --pixel-radius-lg: 0px;
+
+  /* --- Shadows & Glow --- */
+  --pixel-glow-mint: 0 0 8px rgba(0, 255, 255, 0.3), 0 0 20px rgba(0, 255, 255, 0.1);
+  --pixel-glow-pink: 0 0 8px rgba(255, 107, 157, 0.3), 0 0 20px rgba(255, 107, 157, 0.1);
+  --pixel-glow-gold: 0 0 8px rgba(255, 215, 0, 0.3), 0 0 20px rgba(255, 215, 0, 0.1);
+  --pixel-glow-purple: 0 0 8px rgba(179, 136, 255, 0.3), 0 0 20px rgba(179, 136, 255, 0.1);
+
+  /* --- Transitions --- */
+  --pixel-transition-fast: 0.1s steps(2);
+  --pixel-transition-base: 0.2s steps(3);
+  --pixel-transition-slow: 0.3s steps(4);
+
+  /* --- Z-Index --- */
+  --z-scanlines: 9998;
+  --z-hud: 9999;
+  --z-header: 1000;
+  --z-dropdown: 1100;
+  --z-modal: 2000;
+  --z-toast: 3000;
+}
+
+/* ============================================================
+   2. GLOBAL RESETS
+   ============================================================ */
+.pixel-app {
+  *,
+  *::before,
+  *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  body {
+    font-family: var(--pixel-font-body);
+    font-size: var(--pixel-body-base);
+    line-height: 1.5;
+    color: var(--pixel-text-primary);
+    background: var(--pixel-bg-deep);
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    image-rendering: pixelated;
+    overflow-x: hidden;
+  }
+
+  a {
+    color: var(--pixel-accent-mint);
+    text-decoration: none;
+    transition: color var(--pixel-transition-fast);
+
+    &:hover {
+      color: var(--pixel-accent-pink);
+    }
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    image-rendering: auto;
+  }
+
+  /* --- Custom Scrollbar (Pixel Style) --- */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--pixel-bg-base);
+    border-left: 1px solid var(--pixel-border-default);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--pixel-bg-elevated);
+    border: 1px solid var(--pixel-border-default);
+    border-radius: 0;
+
+    &:hover {
+      background: var(--pixel-bg-overlay);
+      border-color: var(--pixel-accent-mint-dim);
+    }
+  }
+
+  /* --- Selection --- */
+  ::selection {
+    background: rgba(0, 255, 255, 0.25);
+    color: var(--pixel-text-primary);
+  }
+}
+
+/* ============================================================
+   3. CRT SCANLINES EFFECT
+   ============================================================ */
+.crt-scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-scanlines);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 60%,
+      rgba(0, 0, 0, 0.2) 100%
+    );
+  }
+}
+
+/* Subtle scanline flicker animation */
+@media (prefers-reduced-motion: no-preference) {
+  .crt-scanlines {
+    animation: crt-flicker 0.15s infinite alternate steps(1);
+  }
+
+  @keyframes crt-flicker {
+    0% { opacity: 0.97; }
+    100% { opacity: 1; }
+  }
+}
+
+/* ============================================================
+   4. PIXEL BORDERS & DECORATIONS
+   ============================================================ */
+.pixel-border {
+  border: var(--pixel-border-width) solid var(--pixel-border-default);
+  position: relative;
+
+  /* Corner notches */
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-color: var(--pixel-accent-mint-dim);
+    border-style: solid;
+    opacity: 0.6;
+  }
+
+  &::before {
+    top: -2px;
+    left: -2px;
+    border-width: 2px 0 0 2px;
+  }
+
+  &::after {
+    bottom: -2px;
+    right: -2px;
+    border-width: 0 2px 2px 0;
+  }
+}
+
+.pixel-border-accent {
+  border-color: var(--pixel-accent-mint);
+  box-shadow: var(--pixel-glow-mint);
+}
+
+.pixel-border-pink {
+  border-color: var(--pixel-accent-pink-dim);
+
+  &::before,
+  &::after {
+    border-color: var(--pixel-accent-pink);
+  }
+}
+
+.pixel-border-gold {
+  border-color: var(--pixel-accent-gold-dim);
+
+  &::before,
+  &::after {
+    border-color: var(--pixel-accent-gold);
+  }
+}
+
+/* ============================================================
+   5. PIXEL DIVIDER
+   ============================================================ */
+.pixel-divider {
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--pixel-border-default) 0px,
+    var(--pixel-border-default) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  border: none;
+  margin: var(--pixel-space-md) 0;
+}
+
+/* ============================================================
+   6. PIXEL TEXT UTILITIES
+   ============================================================ */
+.pixel-text-hud {
+  font-family: var(--pixel-font-display);
+  font-size: var(--pixel-text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pixel-accent-mint);
+}
+
+.pixel-text-display {
+  font-family: var(--pixel-font-display);
+  line-height: 1.6;
+  letter-spacing: 0.05em;
+}
+
+.pixel-text-body {
+  font-family: var(--pixel-font-body);
+  font-size: var(--pixel-body-base);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   7. GLOW UTILITIES
+   ============================================================ */
+.glow-mint {
+  box-shadow: var(--pixel-glow-mint);
+}
+
+.glow-pink {
+  box-shadow: var(--pixel-glow-pink);
+}
+
+.glow-gold {
+  box-shadow: var(--pixel-glow-gold);
+}
+
+.glow-purple {
+  box-shadow: var(--pixel-glow-purple);
+}
+
+/* ============================================================
+   8. PIXEL ANIMATIONS
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes pixel-fade-in {
+    0% { opacity: 0; transform: translateY(4px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pixel-glow-pulse {
+    0%, 100% { box-shadow: 0 0 4px rgba(0, 255, 255, 0.2); }
+    50% { box-shadow: 0 0 12px rgba(0, 255, 255, 0.4); }
+  }
+
+  @keyframes pixel-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes pixel-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  .pixel-animate-in {
+    animation: pixel-fade-in 0.3s steps(4) both;
+  }
+
+  .pixel-pulse-glow {
+    animation: pixel-glow-pulse 2s steps(4) infinite;
+  }
+
+  .pixel-blink-cursor::after {
+    content: '_';
+    animation: pixel-blink 1s steps(1) infinite;
+    color: var(--pixel-accent-mint);
+  }
+}
+
+/* ============================================================
+   9. BENTO GRID LAYOUT
+   ============================================================ */
+.pixel-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--pixel-space-md);
+  container-type: inline-size;
+}
+
+/* ============================================================
+   10. 8-BIT TAG / CHIP
+   ============================================================ */
+.pixel-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-family: var(--pixel-font-display);
+  font-size: var(--pixel-text-xs);
+  color: var(--pixel-accent-gold);
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  cursor: pointer;
+  transition: all var(--pixel-transition-fast);
+
+  &:hover {
+    background: rgba(255, 215, 0, 0.15);
+    border-color: var(--pixel-accent-gold);
+    transform: scale(1.05);
+  }
+
+  &::before {
+    content: '#';
+    opacity: 0.5;
+  }
+}
+
+/* ============================================================
+   11. FORM ELEMENTS OVERRIDES
+   ============================================================ */
+.pixel-input {
+  font-family: var(--pixel-font-body);
+  font-size: var(--pixel-body-base);
+  color: var(--pixel-text-primary);
+  background: var(--pixel-bg-base);
+  border: 2px solid var(--pixel-border-default);
+  padding: var(--pixel-space-sm) var(--pixel-space-md);
+  outline: none;
+  transition: border-color var(--pixel-transition-fast);
+
+  &:focus {
+    border-color: var(--pixel-accent-mint);
+    box-shadow: var(--pixel-glow-mint);
+  }
+
+  &::placeholder {
+    color: var(--pixel-text-muted);
+  }
+}
+
+/* ============================================================
+   12. PIXEL SCREEN (terminal/display effect)
+   ============================================================ */
+.pixel-screen {
+  background: var(--pixel-bg-base);
+  border: var(--pixel-border-width) solid var(--pixel-border-default);
+  padding: var(--pixel-space-md);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 255, 0.015) 2px,
+      rgba(0, 255, 255, 0.015) 4px
+    );
+    pointer-events: none;
+  }
+}
+
+/* ============================================================
+   13. RESPONSIVE UTILITIES
+   ============================================================ */
+@media (max-width: 768px) {
+  :root {
+    --pixel-body-base: 18px;
+    --pixel-body-lg: 22px;
+  }
+
+  .pixel-bento-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --pixel-body-base: 16px;
+  }
+}

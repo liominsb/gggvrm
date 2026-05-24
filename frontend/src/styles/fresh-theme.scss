@@ -1,0 +1,291 @@
+/* ============================================================
+   FRESH THEME — 小清新白色设计系统
+   Pure white base + pastel accents + soft shadows + rounded
+   Chinese sans-serif typography + hand-drawn illustrations.
+   ============================================================ */
+
+/* ============================================================
+   1. DESIGN TOKENS — CSS Custom Properties
+   ============================================================ */
+:root {
+  /* --- Color Palette --- */
+  --fresh-bg-page: #faf9f6;
+  --fresh-bg-surface: #ffffff;
+  --fresh-bg-hover: #f6f5f1;
+  --fresh-bg-active: #f0efe9;
+
+  /* Accents — pastel tones */
+  --fresh-mint: #88c9a1;
+  --fresh-mint-light: #e8f5ed;
+  --fresh-mint-hover: #6fb88a;
+  --fresh-pink: #e8a0b4;
+  --fresh-pink-light: #fdf0f4;
+  --fresh-pink-hover: #da8a9f;
+  --fresh-apricot: #f0c8a0;
+  --fresh-apricot-light: #fdf6ef;
+  --fresh-apricot-hover: #e8b888;
+
+  /* Semantic */
+  --fresh-success: #88c9a1;
+  --fresh-warning: #f0c8a0;
+  --fresh-error: #e8888a;
+  --fresh-info: #88b8d9;
+
+  /* Text */
+  --fresh-text-primary: #3d3d3d;
+  --fresh-text-secondary: #8c8c8c;
+  --fresh-text-muted: #bfbfbf;
+  --fresh-text-accent: var(--fresh-mint);
+
+  /* Borders */
+  --fresh-border-light: #f0ede8;
+  --fresh-border-default: #e8e4df;
+
+  /* Shadows — soft and diffuse */
+  --fresh-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --fresh-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --fresh-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.03);
+  --fresh-shadow-lg: 0 8px 36px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.03);
+
+  /* Border Radius */
+  --fresh-radius-xs: 6px;
+  --fresh-radius-sm: 8px;
+  --fresh-radius-md: 12px;
+  --fresh-radius-lg: 16px;
+  --fresh-radius-xl: 20px;
+
+  /* --- Typography --- */
+  --fresh-font-display: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+  --fresh-font-body: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+  --fresh-font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  --fresh-text-xs: 0.75rem;
+  --fresh-text-sm: 0.875rem;
+  --fresh-text-base: 1rem;
+  --fresh-text-lg: 1.125rem;
+  --fresh-text-xl: 1.25rem;
+  --fresh-text-2xl: 1.5rem;
+  --fresh-text-3xl: 2rem;
+
+  /* --- Spacing (4pt grid) --- */
+  --fresh-space-xs: 4px;
+  --fresh-space-sm: 8px;
+  --fresh-space-md: 16px;
+  --fresh-space-lg: 24px;
+  --fresh-space-xl: 32px;
+  --fresh-space-2xl: 48px;
+  --fresh-space-3xl: 64px;
+
+  /* --- Layout --- */
+  --fresh-max-width: 1200px;
+  --fresh-header-height: 60px;
+
+  /* --- Transitions --- */
+  --fresh-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --fresh-transition-fast: 0.15s var(--fresh-ease-out);
+  --fresh-transition-base: 0.25s var(--fresh-ease-out);
+  --fresh-transition-slow: 0.35s var(--fresh-ease-out);
+
+  /* --- Z-Index --- */
+  --z-header: 1000;
+  --z-dropdown: 1100;
+  --z-modal: 2000;
+  --z-toast: 3000;
+}
+
+/* ============================================================
+   2. GLOBAL RESETS
+   ============================================================ */
+.fresh-app {
+  *,
+  *::before,
+  *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--fresh-font-body);
+    font-size: var(--fresh-text-base);
+    line-height: 1.6;
+    color: var(--fresh-text-primary);
+    background: var(--fresh-bg-page);
+    overflow-x: hidden;
+  }
+
+  a {
+    color: var(--fresh-mint);
+    text-decoration: none;
+    transition: color var(--fresh-transition-fast);
+
+    &:hover {
+      color: var(--fresh-mint-hover);
+    }
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* --- Scrollbar --- */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--fresh-border-default);
+    border-radius: 3px;
+
+    &:hover {
+      background: var(--fresh-text-muted);
+    }
+  }
+
+  /* --- Selection --- */
+  ::selection {
+    background: var(--fresh-mint-light);
+    color: var(--fresh-text-primary);
+  }
+}
+
+/* ============================================================
+   3. UTILITY CLASSES
+   ============================================================ */
+
+/* Card base */
+.card-soft {
+  background: var(--fresh-bg-surface);
+  border-radius: var(--fresh-radius-lg);
+  box-shadow: var(--fresh-shadow-sm);
+  transition: box-shadow var(--fresh-transition-base), transform var(--fresh-transition-base);
+
+  &:hover {
+    box-shadow: var(--fresh-shadow-md);
+  }
+}
+
+.card-soft--hoverable {
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: var(--fresh-shadow-md);
+    transform: translateY(-2px);
+  }
+}
+
+/* Accent left border */
+.accent-border-left {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--fresh-mint);
+    border-radius: 3px 0 0 3px;
+  }
+}
+
+/* Tag / Chip */
+.tag-soft {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: var(--fresh-text-xs);
+  color: var(--fresh-text-secondary);
+  background: var(--fresh-bg-hover);
+  border-radius: var(--fresh-radius-xs);
+  cursor: pointer;
+  transition: all var(--fresh-transition-fast);
+
+  &:hover {
+    background: var(--fresh-mint-light);
+    color: var(--fresh-mint-hover);
+  }
+
+  &--active {
+    background: var(--fresh-mint-light);
+    color: var(--fresh-mint-hover);
+    font-weight: 500;
+  }
+}
+
+/* Divider */
+.divider-soft {
+  height: 1px;
+  background: var(--fresh-border-light);
+  border: none;
+  margin: var(--fresh-space-md) 0;
+}
+
+/* Text utilities */
+.text-muted {
+  color: var(--fresh-text-muted);
+}
+
+.text-secondary {
+  color: var(--fresh-text-secondary);
+}
+
+.text-mint {
+  color: var(--fresh-mint);
+}
+
+.text-pink {
+  color: var(--fresh-pink);
+}
+
+/* Fade animation */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s var(--fresh-ease-out) both;
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.4s var(--fresh-ease-out) both;
+  }
+}
+
+/* ============================================================
+   4. RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  :root {
+    --fresh-space-xl: 24px;
+    --fresh-space-2xl: 36px;
+    --fresh-text-3xl: 1.5rem;
+  }
+}
