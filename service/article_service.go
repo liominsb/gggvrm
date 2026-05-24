@@ -10,6 +10,8 @@ import (
 	"gggvrm/repository"
 	"gggvrm/utils"
 	"log"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -299,6 +301,12 @@ func (s *articleServiceImpl) DelArticle(ctx context.Context, articleID string, u
 
 	if err := s.articleRepo.DeleteArticle(ctx, &article); err != nil {
 		return err
+	}
+
+	wd, _ := os.Getwd()
+	fullPath := filepath.Join(wd, article.CoverImg)
+	if err := os.Remove(fullPath); err != nil {
+		log.Printf("删除文件失败: %v", err)
 	}
 
 	go func() {

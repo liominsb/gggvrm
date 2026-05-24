@@ -2,17 +2,18 @@
   <footer class="app-footer">
     <div class="footer-container">
       <div class="footer-content">
-        <div class="footer-brand">
-          <p class="footer-desc">分享你的想法，探索无限可能</p>
+        <div class="footer-left">
+          <span class="footer-brand">博客空间</span>
+          <span class="footer-desc">分享想法，发现美好</span>
         </div>
         <div class="footer-links">
           <router-link to="/" class="footer-link">首页</router-link>
           <router-link to="/feed" class="footer-link">关注</router-link>
           <router-link to="/chat" class="footer-link">聊天室</router-link>
         </div>
-      </div>
-      <div class="footer-bottom">
-        <span>© {{ currentYear }} All rights reserved.</span>
+        <div class="footer-right">
+          <span class="footer-copy">&copy; {{ currentYear }} 博客空间</span>
+        </div>
       </div>
     </div>
   </footer>
@@ -25,55 +26,69 @@ const currentYear = computed(() => new Date().getFullYear())
 
 <style scoped lang="scss">
 .app-footer {
-  background: #1a1a2e;
-  color: #aaa;
   margin-top: auto;
+  background: var(--fresh-bg-surface);
+  border-top: 1px solid var(--fresh-border-light);
 }
 
 .footer-container {
-  max-width: 1200px;
+  max-width: var(--fresh-max-width);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--fresh-space-lg);
 }
 
 .footer-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32px 0 24px;
+  padding: var(--fresh-space-lg) 0;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: var(--fresh-space-md);
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .footer-brand {
-  .footer-desc {
-    font-size: 13px;
-    margin: 6px 0 0;
-    color: #777;
-  }
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fresh-text-primary);
+}
+
+.footer-desc {
+  font-size: 13px;
+  color: var(--fresh-text-muted);
 }
 
 .footer-links {
   display: flex;
-  gap: 24px;
+  gap: var(--fresh-space-lg);
+}
 
-  .footer-link {
-    font-size: 14px;
-    color: #888;
-    text-decoration: none;
-    transition: color 0.2s;
+.footer-link {
+  font-size: 14px;
+  color: var(--fresh-text-secondary);
+  text-decoration: none;
+  transition: color var(--fresh-transition-fast);
 
-    &:hover {
-      color: #667eea;
-    }
+  &:hover {
+    color: var(--fresh-mint-hover);
   }
 }
 
-.footer-bottom {
-  border-top: 1px solid #2a2a3e;
-  padding: 16px 0;
+.footer-right {
   font-size: 13px;
-  color: #555;
-  text-align: center;
+  color: var(--fresh-text-muted);
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
 }
 </style>

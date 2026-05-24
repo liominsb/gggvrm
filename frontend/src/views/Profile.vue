@@ -392,9 +392,8 @@ const isOwnProfile = computed(() => {
 
 /** 拼接图片完整 URL */
 const getImageUrl = (path: string): string => {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  return `http://localhost:3000${path}`
+  if (!path || path.startsWith('http')) return path
+  return path
 }
 
 /** 格式化日期 */

@@ -81,7 +81,8 @@ func (s *cateServiceImpl) GetCates(ctx context.Context, cates *[]models.Category
 }
 
 func (s *cateServiceImpl) DeleteCate(ctx context.Context, cateID uint) error {
-	cacheKey := fmt.Sprintf("category:%d", cateID)
+	//cacheKey := fmt.Sprintf("category:%d", cateID)
+	cacheKey := "categories:all"
 	//第一次删除缓存
 	if err := s.redisClient.Del(ctx, cacheKey).Err(); err != nil {
 		fmt.Printf("【Redis警告】清理分类 %d 缓存失败: %v\n", cateID, err)

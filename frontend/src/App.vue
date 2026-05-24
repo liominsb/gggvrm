@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="app" class="fresh-app">
     <AppHeader />
     <main class="app-main">
       <router-view v-slot="{ Component }">
@@ -20,10 +20,12 @@ import AppFooter from '@/components/AppFooter.vue'
 </script>
 
 <style>
-/* Global Reset & Base Styles */
-*,
-*::before,
-*::after {
+/* ============================================================
+   FRESH APP — GLOBAL STYLES
+   ============================================================ */
+.fresh-app *,
+.fresh-app *::before,
+.fresh-app *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -34,19 +36,23 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial,
-    sans-serif;
+  font-family: var(--fresh-font-body);
+  font-size: var(--fresh-text-base);
+  line-height: 1.6;
+  color: var(--fresh-text-primary);
+  background: var(--fresh-bg-page);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #333;
-  background: #f5f7fa;
-  line-height: 1.6;
 }
 
 a {
-  color: inherit;
+  color: var(--fresh-mint);
   text-decoration: none;
+  transition: color var(--fresh-transition-fast);
+}
+
+a:hover {
+  color: var(--fresh-mint-hover);
 }
 
 img {
@@ -54,7 +60,6 @@ img {
   height: auto;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -65,39 +70,46 @@ img {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #ddd;
+  background: var(--fresh-border-default);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #ccc;
+  background: var(--fresh-text-muted);
 }
 
-/* Selection */
 ::selection {
-  background: rgba(102, 126, 234, 0.2);
-  color: #333;
+  background: var(--fresh-mint-light);
+  color: var(--fresh-text-primary);
 }
 </style>
 
 <style scoped>
 #app {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
 
 .app-main {
   flex: 1;
+  padding-top: var(--fresh-header-height);
 }
 
 /* Page transition */
-.page-fade-enter-active,
-.page-fade-leave-active {
-  transition: opacity 0.25s ease;
+.page-fade-enter-active {
+  transition: opacity 0.2s var(--fresh-ease-out);
 }
 
-.page-fade-enter-from,
+.page-fade-leave-active {
+  transition: opacity 0.15s var(--fresh-ease-out);
+}
+
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
 .page-fade-leave-to {
   opacity: 0;
 }

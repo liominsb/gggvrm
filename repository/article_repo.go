@@ -51,7 +51,7 @@ func (r *articleRepoImpl) GetArticlesByIDs(ctx context.Context, ids []uint) ([]m
 }
 
 func (r *articleRepoImpl) DeleteArticle(ctx context.Context, article *models.Article) error {
-	return r.db.WithContext(ctx).Delete(article).Error
+	return r.db.WithContext(ctx).Unscoped().Delete(article).Error
 }
 
 func (r *articleRepoImpl) UpdateArticle(ctx context.Context, article *models.Article, updateData map[string]interface{}) error {

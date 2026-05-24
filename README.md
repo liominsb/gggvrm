@@ -1,8 +1,10 @@
-# GGGVRM - 博客后端 API
+# GGGVRM — 全栈博客系统
 
-基于 **Go + Gin + GORM + MySQL + Redis + RabbitMQ + WebSocket** 构建的博客系统后端服务。
+基于 **Go + Gin + GORM + MySQL + Redis + RabbitMQ + WebSocket** 构建后端服务，搭配 **Vue 3 + TypeScript + Element Plus** 构建前端 SPA 的全栈博客平台。
 
 ## 技术栈
+
+### 后端
 
 | 组件 | 技术 |
 |------|------|
@@ -15,23 +17,54 @@
 | WebSocket | gorilla/websocket |
 | 配置管理 | Viper |
 
+### 前端
+
+| 组件 | 技术 |
+|------|------|
+| 框架 | [Vue 3](https://vuejs.org/) + TypeScript |
+| 构建工具 | [Vite](https://vitejs.dev/) |
+| UI 组件库 | [Element Plus](https://element-plus.org/) |
+| 状态管理 | [Pinia](https://pinia.vuejs.org/) |
+| 路由 | [Vue Router](https://router.vuejs.org/) |
+| HTTP 客户端 | Axios |
+| Markdown 编辑器 | md-editor-v3 |
+| 样式 | SCSS（小清新 / 像素风双主题） |
+
 ## 项目结构
 
 ```
-├── config/          # 配置文件（数据库、Redis、RabbitMQ）
-├── controllers/     # 控制器层（处理 HTTP 请求）
-├── global/          # 全局变量、消息队列接口
-├── middlewares/      # 中间件（JWT 认证）
-├── models/          # 数据模型
-├── mq/              # RabbitMQ 生产者/消费者
-├── repository/      # 数据访问层
-├── router/          # 路由定义 & 依赖注入
-├── service/         # 业务逻辑层
-├── utils/           # 工具函数（JWT 生成/解析）
-├── uploads/         # 上传文件存储目录
-├── main.go          # 程序入口
-├── go.mod
-└── go.sum
+gggvrm/
+├── config/                # 后端配置（数据库、Redis、RabbitMQ）
+├── controllers/           # 控制器层（处理 HTTP 请求）
+├── global/                # 全局变量、消息队列接口
+├── middlewares/           # 中间件（JWT 认证）
+├── models/                # 数据模型
+├── mq/                    # RabbitMQ 生产者/消费者
+├── repository/            # 数据访问层
+├── router/                # 路由定义 & 依赖注入
+├── service/               # 业务逻辑层
+├── utils/                 # 工具函数（JWT 生成/解析）
+├── uploads/               # 上传文件存储目录
+├── main.go                # 后端入口
+├── go.mod / go.sum        # Go 依赖管理
+│
+├── frontend/              # Vue 3 前端项目
+│   ├── src/
+│   │   ├── api/           # API 请求封装
+│   │   ├── components/    # 公共组件（AppHeader、AppFooter、ArticleCard 等）
+│   │   ├── router/        # Vue Router 路由配置
+│   │   ├── stores/        # Pinia 状态管理
+│   │   ├── styles/        # 全局样式 & 主题（fresh-theme / pixel-theme）
+│   │   ├── types/         # TypeScript 类型定义
+│   │   ├── views/         # 页面视图（Home、Feed、Editor、Chat、Profile 等）
+│   │   ├── App.vue        # 根组件
+│   │   └── main.ts        # 前端入口
+│   ├── index.html
+│   ├── vite.config.ts     # Vite 配置
+│   ├── tsconfig.json      # TypeScript 配置
+│   └── package.json       # 前端依赖管理
+│
+└── config.yaml            # 运行时配置文件（需自行创建）
 ```
 
 ---
@@ -64,6 +97,8 @@ JWT 中包含以下 Claims：
 | ID | uint | 主键（GORM 自增） |
 | Username | string | 用户名（唯一索引） |
 | Password | string | 密码（bcrypt 加密，JSON 不返回） |
+| Bio | string | 个人简介（最长 500 字符） |
+| Image | string | 头像 URL |
 | CreatedAt | time | 创建时间 |
 | UpdatedAt | time | 更新时间 |
 
@@ -295,10 +330,51 @@ GET /api/v1/user/:id
 
 ---
 
-#### 2.3 修改密码
+#### 2.3 修改个人资料
 
 ```
-PUT /api/v1/user
+PUT /api/v1/user/profile
+```
+
+**请求体：**
+
+```json
+{
+  "username": "string (必填)",
+  "image": "string (可选，头像 URL)",
+  "bio": "string (可选，个人简介)"
+}
+```
+
+**成功响应 `200 OK`：**
+
+```json
+{
+  "user": {
+    "ID": 1,
+    "username": "newname",
+    "bio": "这是我的个人简介",
+    "image": "/uploads/images/avatar.jpg",
+    "created_at": "2025-01-01T00:00:00Z",
+    "updated_at": "2025-01-01T00:00:00Z"
+  }
+}
+```
+
+**错误响应 `400`：**
+
+```json
+{
+  "error": "错误信息"
+}
+```
+
+---
+
+#### 2.4 修改密码
+
+```
+PUT /api/v1/user/password
 ```
 
 **请求体：**
@@ -1212,10 +1288,11 @@ Authorization: Bearer <token>
 | POST | `/api/auth/refreshTokens` | 刷新令牌 | ❌ |
 | GET | `/api/v1/user` | 获取当前用户信息 | ✅ |
 | GET | `/api/v1/user/:id` | 获取指定用户信息 | ✅ |
-| PUT | `/api/v1/user` | 修改密码 | ✅ |
-| POST | `/api/v1/article` | 创建文章 | ✅ |
+| PUT | `/api/v1/user/profile` | 修改个人资料 | ✅ |
+| PUT | `/api/v1/user/password` | 修改密码 | ✅ |
+| POST | `/api/v1/articles` | 创建文章 | ✅ |
 | DELETE | `/api/v1/article/:id` | 删除文章 | ✅ |
-| GET | `/api/v1/articles` | 获取文章列表（分页） | ✅ |
+| GET | `/api/v1/articles` | 获取文章列表（分页） | ❌ |
 | GET | `/api/v1/article/:id` | 获取文章详情 | ✅ |
 | PUT | `/api/v1/article/:id` | 更新文章 | ✅ |
 | GET | `/api/v1/articles/cursor` | 游标分页获取文章 | ✅ |
@@ -1226,10 +1303,10 @@ Authorization: Bearer <token>
 | DELETE | `/api/v1/comment/:id` | 删除评论 | ✅ |
 | GET | `/api/v1/article/:id/comments` | 获取文章评论 | ✅ |
 | POST | `/api/v1/upload` | 批量上传图片 | ✅ |
-| GET | `/api/v1/tags` | 获取所有标签 | ✅ |
+| GET | `/api/v1/tags` | 获取所有标签 | ❌ |
 | POST | `/api/v1/tag` | 创建标签 | ✅ |
 | DELETE | `/api/v1/tag/:id` | 删除标签 | ✅ |
-| GET | `/api/v1/categories` | 获取所有分类 | ✅ |
+| GET | `/api/v1/categories` | 获取所有分类 | ❌ |
 | POST | `/api/v1/category` | 创建分类 | ✅ |
 | DELETE | `/api/v1/category/:id` | 删除分类 | ✅ |
 | POST | `/api/v1/article/:id/favorite` | 收藏/取消收藏 | ✅ |
@@ -1248,12 +1325,30 @@ Authorization: Bearer <token>
 
 ## 启动方式
 
+### 后端
+
 1. 确保已安装并启动 MySQL、Redis、RabbitMQ
-2. 在 `config/` 目录下配置相关连接信息
-3. 运行项目：
+2. 在项目根目录创建 `config/config.yaml` 配置文件，参考 [`config/config.go`](config/config.go) 中的结构填写数据库、Redis、RabbitMQ、JWT 等配置
+3. 运行后端：
 
 ```bash
 go run main.go
 ```
 
-服务默认启动在 `localhost:8080`（具体端口视配置文件而定）。
+后端默认启动在 `localhost:8080`（具体端口视配置文件而定）。
+
+### 前端
+
+```bash
+cd frontend
+npm install    # 安装依赖
+npm run dev    # 启动开发服务器（默认 http://localhost:5173）
+```
+
+生产构建：
+
+```bash
+npm run build  # 输出到 frontend/dist/
+```
+
+> 开发模式下前端通过 Vite 代理将 `/api` 请求转发到后端，详见 [`frontend/vite.config.ts`](frontend/vite.config.ts)。

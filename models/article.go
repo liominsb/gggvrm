@@ -31,7 +31,8 @@ type Article struct {
 	CategoryID *uint     `json:"category_id" gorm:"index:idx_category_id"` // 记录分类的 ID
 	Category   *Category `json:"category" gorm:"foreignKey:CategoryID"`    //类别
 
-	Tags []Tag `json:"tags" gorm:"many2many:article_tags;"`
+	Tags []Tag `json:"tags" gorm:"many2many:article_tags;constraint:OnDelete:CASCADE;"`
+	//不知道为什么constraint:OnDelete:CASCADE;不生效，删除文章后article_tags表中对应的记录没有被删除，导致无法删除文章，要手动去mysql加
 
 	FavoredBy []User `gorm:"many2many:user_article_favors"` //被哪些用户收藏
 }

@@ -17,8 +17,10 @@ func SetupRouter() *gin.Engine {
 	ctrls := Inject()
 
 	r.Use(cors.New(cors.Config{
-		// 允许哪些域来访问我？这里配置了前端的地址
-		AllowOrigins: []string{"http://localhost:5173"}, // 在你的实际开发中，这里会改成 "http://localhost:5173"
+		// 开发环境：允许所有 localhost 来源（避免每次改端口都要改配置）
+		AllowOriginFunc: func(origin string) bool {
+			return true // 开发阶段允许所有来源
+		},
 		// 允许前端使用哪些危险方法？(解决预检请求问题)
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		// 允许前端携带哪些特殊的请求头？
