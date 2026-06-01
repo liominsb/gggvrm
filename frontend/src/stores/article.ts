@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { articleApi } from '@/api/article'
-import type { ArticleListItem, ArticleDetail, Comment, ArticleCreateRequest, ArticleUpdateRequest } from '@/types/article'
+import type { ArticleListItem, ArticleDetail, Comment, ArticleCreateRequest, ArticleUpdateRequest, RagSearchItem } from '@/types/article'
 
 /**
  * 将后端 gorm.Model 的大写 ID 归一化为小写 id
@@ -57,6 +57,8 @@ export const useArticleStore = defineStore('article', () => {
     const feedCount = ref(0)
     const favoritedArticles = ref<ArticleListItem[]>([])
     const favoritedCount = ref(0)
+    const ragResults = ref<RagSearchItem[]>([])
+    const ragSearching = ref(false)
 
     // ======== Actions ========
 
@@ -225,6 +227,18 @@ export const useArticleStore = defineStore('article', () => {
         }
     }
 
+    /** RAG 语义搜索 */
+    async function searchRag(keyword: string) {
+        ragSearching.value = true
+        try {
+            const data = await articleApi.searchRagArticles(keyword)
+            ragResults.value = data.data || []
+            return data
+        } finally {
+            ragSearching.value = false
+        }
+    }
+
     return {
         articles,
         articlesCount,
@@ -235,6 +249,8 @@ export const useArticleStore = defineStore('article', () => {
         feedCount,
         favoritedArticles,
         favoritedCount,
+        ragResults,
+        ragSearching,
         fetchArticles,
         fetchFeed,
         fetchArticle,
@@ -248,5 +264,6 @@ export const useArticleStore = defineStore('article', () => {
         toggleLike,
         fetchUserFavorites,
         fetchUserFavoritesById,
+        searchRag,
     }
 })

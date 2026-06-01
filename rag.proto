@@ -1,0 +1,31 @@
+syntax = "proto3";
+package rag;
+
+option go_package = "./rag_grpc";
+
+service RagService {
+  rpc AddRag (RagRequest) returns (RagResponse) {}
+  rpc SearchRag (RagSearchRequest) returns (RagSearchResponse) {}
+}
+
+message RagRequest {
+  string title=1;
+  string article_id=2;
+  string content=3;
+}
+
+message RagResponse {
+  bool ok = 1;
+}
+
+message RagSearchRequest {
+  string query = 1;
+}
+
+message RagSearchResponse {
+  message RagItem {
+    string article_id = 1;
+    string title = 2;
+  }
+  repeated RagItem items = 1;
+}

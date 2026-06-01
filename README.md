@@ -1,6 +1,6 @@
 # GGGVRM — 全栈博客系统
 
-基于 **Go + Gin + GORM + MySQL + Redis + RabbitMQ + WebSocket** 构建后端服务，搭配 **Vue 3 + TypeScript + Element Plus** 构建前端 SPA 的全栈博客平台。
+基于 **Go + Gin + GORM + MySQL + Redis + RabbitMQ + WebSocket + gRPC** 构建后端服务，搭配 **Vue 3 + TypeScript + Element Plus** 构建前端 SPA 的全栈博客平台。支持基于 **Python + 向量库** 的 RAG 语义搜索能力。
 
 ## 技术栈
 
@@ -16,6 +16,8 @@
 | 认证 | JWT (golang-jwt) |
 | WebSocket | gorilla/websocket |
 | 配置管理 | Viper |
+| RPC 通信 | gRPC (grpc-go + grpcio Python) |
+| RAG 语义搜索 | Python + LangChain + ChromaDB（DashScope Embeddings） |
 
 ### 前端
 
@@ -45,6 +47,14 @@ gggvrm/
 ├── service/               # 业务逻辑层
 ├── utils/                 # 工具函数（JWT 生成/解析）
 ├── uploads/               # 上传文件存储目录
+├── rag_grpc/              # gRPC 生成的 Go 客户端代码
+├── rag.proto              # gRPC Proto 定义（RAG 向量搜索服务）
+│
+├── py_rag_grpc/           # Python RAG 向量库 gRPC 服务
+│   ├── rag_grpc.py        # 服务主文件（LangChain + ChromaDB）
+│   ├── pb/                # gRPC 生成的 Python 代码
+│   └── chroma_db/         # ChromaDB 本地持久化数据
+│
 ├── main.go                # 后端入口
 ├── go.mod / go.sum        # Go 依赖管理
 │
@@ -56,7 +66,7 @@ gggvrm/
 │   │   ├── stores/        # Pinia 状态管理
 │   │   ├── styles/        # 全局样式 & 主题（fresh-theme / pixel-theme）
 │   │   ├── types/         # TypeScript 类型定义
-│   │   ├── views/         # 页面视图（Home、Feed、Editor、Chat、Profile 等）
+│   │   ├── views/         # 页面视图（Home、Feed、Editor、Chat、Profile、Search 等）
 │   │   ├── App.vue        # 根组件
 │   │   └── main.ts        # 前端入口
 │   ├── index.html
@@ -64,7 +74,7 @@ gggvrm/
 │   ├── tsconfig.json      # TypeScript 配置
 │   └── package.json       # 前端依赖管理
 │
-└── config.yaml            # 运行时配置文件（需自行创建）
+├── config/config.yaml     # 运行时配置文件（需自行创建）
 ```
 
 ---
@@ -449,6 +459,8 @@ POST /api/v1/articles
 }
 ```
 
+> 创建文章后，系统会**异步**调用 Python RAG gRPC 服务（`AddRag`），将文章标题与内容写入向量库以支持语义搜索。此过程不影响文章创建的响应时间。
+
 ---
 
 #### 3.2 删除文章
@@ -688,6 +700,44 @@ GET /api/v1/articles/feed
   "total_pages": 2
 }
 ```
+
+---
+
+#### 3.8 RAG 语义搜索
+
+```
+GET /api/v1/article/search
+```
+
+> 通过 gRPC 调用 Python 向量库服务（`SearchRag`），基于文章向量化的相似度进行语义搜索，而非传统的关键词匹配。
+
+**查询参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| keyword | string | 搜索关键词（必填） |
+
+**成功响应 `200 OK`：**
+
+```json
+{
+  "data": [
+    {
+      "article_id": "15",
+      "title": "基于 Asyncio 的 Python 异步高并发编程与事件循环"
+    },
+    {
+      "article_id": "7",
+      "title": "深入理解 Go 语言的 GMP 并发调度模型"
+    }
+  ]
+}
+```
+
+**错误响应：**
+
+- `400` — 搜索关键词不能为空
+- `500` — gRPC 调用失败
 
 ---
 
@@ -1099,6 +1149,47 @@ GET /api/v1/user/favorites
 
 ---
 
+#### 9.5 获取指定用户的收藏列表
+
+```
+GET /api/v1/user/:id/favorites
+```
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| id | uint | 目标用户 ID |
+
+**查询参数：**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| page | int | 1 | 页码 |
+| page_size | int | 10 | 每页数量 |
+
+**成功响应 `200 OK`：**
+
+```json
+{
+  "data": [ ... ],
+  "total": 15,
+  "page": 1,
+  "page_size": 10,
+  "total_pages": 2
+}
+```
+
+**错误响应 `400`：**
+
+```json
+{
+  "error": "无效的用户ID"
+}
+```
+
+---
+
 ### 10. 关注模块（🔒 需认证）
 
 #### 10.1 关注 / 取消关注用户
@@ -1301,6 +1392,7 @@ Authorization: Bearer <token>
 | PUT | `/api/v1/article/:id` | 更新文章 | ✅ |
 | GET | `/api/v1/articles/cursor` | 游标分页获取文章 | ✅ |
 | GET | `/api/v1/articles/feed` | 获取个人 Feed 流 | ✅ |
+| GET | `/api/v1/article/search` | RAG 语义搜索 | ✅ |
 | POST | `/api/v1/article/:id/like` | 点赞文章 | ✅ |
 | GET | `/api/v1/article/:id/like` | 获取文章点赞数 | ✅ |
 | POST | `/api/v1/article/:id/comment` | 创建评论 | ✅ |
@@ -1317,6 +1409,7 @@ Authorization: Bearer <token>
 | GET | `/api/v1/article/:id/favorite` | 获取收藏状态 | ✅ |
 | GET | `/api/v1/article/:id/favorites/count` | 获取收藏数 | ✅ |
 | GET | `/api/v1/user/favorites` | 获取用户收藏列表 | ✅ |
+| GET | `/api/v1/user/:id/favorites` | 获取指定用户收藏列表 | ✅ |
 | POST | `/api/v1/user/:id/follow` | 关注/取消关注 | ✅ |
 | GET | `/api/v1/user/:id/follow` | 获取关注状态 | ✅ |
 | GET | `/api/v1/user/:id/follow/counts` | 获取关注/粉丝数 | ✅ |
@@ -1327,13 +1420,45 @@ Authorization: Bearer <token>
 
 ---
 
+## RAG 语义搜索架构
+
+```
+┌──────────────┐    gRPC (localhost:50051)    ┌────────────────────────────────┐
+│  Go 后端      │ ◄──────────────────────────► │  Python gRPC 服务 (py_rag_grpc) │
+│              │                              │                                │
+│  CreateArt. ──── AddRag ─────────────────►  │  LangChain 文本切片              │
+│              │                              │  → DashScope Embeddings 向量化   │
+│  SearchRag ◄─── SearchRag ───────────────── │  → ChromaDB 存储/检索            │
+└──────────────┘                              └────────────────────────────────┘
+```
+
+- **创建文章时**：后端异步调用 `AddRag`，Python 端使用 `RecursiveCharacterTextSplitter`（chunk_size=600, overlap=60）将文章内容切片，通过 DashScope Embeddings 向量化后存入 ChromaDB
+- **语义搜索时**：后端调用 `SearchRag`，Python 端将查询文本向量化后从 ChromaDB 做 cosine 相似度搜索（top-5），返回最匹配的文章 ID 和标题
+- Proto 定义见 [`rag.proto`](rag.proto)，Go 客户端在 [`rag_grpc/`](rag_grpc/)，Python 服务在 [`py_rag_grpc/`](py_rag_grpc/)
+
+---
+
 ## 启动方式
 
 ### 后端
 
 1. 确保已安装并启动 MySQL、Redis、RabbitMQ
 2. 在项目根目录创建 `config/config.yaml` 配置文件，参考 [`config/config.go`](config/config.go) 中的结构填写数据库、Redis、RabbitMQ、JWT 等配置
-3. 运行后端：
+3. 启动 Python RAG 向量库 gRPC 服务：
+
+```bash
+cd py_rag_grpc
+pip install grpcio grpcio-tools langchain langchain-community langchain-chroma langchain-openai python-dotenv
+# 在 py_rag_grpc/ 下创建 .env 文件，填入：
+#   EMBED_API_KEY=你的 DashScope API Key
+#   LLM_API_KEY=你的 LLM API Key
+#   LLM_BASE_URL=你的 LLM API Base URL
+python rag_grpc.py    # 默认监听 localhost:50051
+```
+
+> 不启动此服务则文章创建与语义搜索功能不可用，但不影响其他功能。
+
+4. 运行后端：
 
 ```bash
 go run main.go
@@ -1356,3 +1481,32 @@ npm run build  # 输出到 frontend/dist/
 ```
 
 > 开发模式下前端通过 Vite 代理将 `/api` 请求转发到后端，详见 [`frontend/vite.config.ts`](frontend/vite.config.ts)。
+
+---
+
+## 前端功能概览
+
+| 页面 | 路径 | 功能 |
+|------|------|------|
+| 首页 | `/` | 文章列表、标签/分类筛选、分页 |
+| 关注动态 | `/feed` | 关注用户的最新文章（需登录） |
+| 语义搜索 | `/search` | 基于 RAG 向量库的 AI 语义搜索 |
+| 文章详情 | `/article/:id` | 查看全文、评论、点赞、收藏 |
+| 写文章 | `/editor` | Markdown 编辑器（创建/编辑） |
+| 聊天室 | `/chat` | WebSocket 实时聊天 |
+| 个人主页 | `/profile/:id` | 用户资料、文章列表、收藏列表 |
+| 设置 | `/settings` | 修改资料、密码 |
+| 登录/注册 | `/login` `/register` | 账号认证 |
+
+### 语义搜索
+
+顶部导航栏提供搜索入口，输入关键词后跳转至 `/search?keyword=xxx`，调用后端 RAG API（`GET /api/v1/article/search`）进行语义匹配，返回最相关的文章列表。搜索结果基于向量相似度而非关键词精确匹配，适合模糊语义查询。
+
+**关键代码路径：**
+
+| 文件 | 职责 |
+|------|------|
+| `src/api/article.ts` | `searchRagArticles()` — 调用后端 RAG 搜索接口 |
+| `src/stores/article.ts` | `searchRag()` action + `ragResults` / `ragSearching` 状态 |
+| `src/views/SearchResults.vue` | 搜索结果页面（输入框 + 结果列表 + 空状态） |
+| `src/components/AppHeader.vue` | 顶部搜索按钮 + 展开式搜索输入框 |

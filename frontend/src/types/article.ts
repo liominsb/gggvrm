@@ -115,6 +115,17 @@ export interface CommentCreateRequest {
 /** 创建评论响应（返回创建的评论对象） */
 export type CommentResponse = Comment
 
+/** RAG 语义搜索单条结果 */
+export interface RagSearchItem {
+    article_id: string
+    title: string
+}
+
+/** RAG 语义搜索响应 */
+export interface RagSearchResponse {
+    data: RagSearchItem[]
+}
+
 /** 文章详情响应（兼容别名） */
 export type ArticleResponse = ArticleDetailResponse
 

@@ -2,12 +2,17 @@ package controllers // Package controllers 控制器
 
 import (
 	"bytes"
+	"context"
+	"fmt"
+	"gggvrm/global"
 	"gggvrm/models"
+	"gggvrm/rag_grpc"
 	"gggvrm/service"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -61,6 +66,25 @@ func (c *ArticleController) CreateArticle(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	go func(title string, articleId uint, content string) {
+		grpcCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		artIDStr := strconv.FormatUint(uint64(articleId), 10)
+		rpcResp, err := global.Rag_grpc_client.AddRag(grpcCtx, &rag_grpc.RagRequest{
+			Title:     title,
+			ArticleId: artIDStr,
+			Content:   content,
+		})
+		if err != nil {
+			// 异步任务失败不能影响用户，打印错误日志供后续排查/重试队列处理即可
+			log.Printf("[RAG同步失败] 文章ID: %s, 错误原因: %v", artIDStr, err)
+		}
+		if !rpcResp.Ok {
+			log.Printf("[RAG同步业务失败] 文章ID: %s, Python端处理失败", artIDStr)
+		}
+		fmt.Printf("[RAG同步成功] 文章ID: %s 已成功在向量库建索", artIDStr)
+	}(article.Title, article.ID, article.Content)
 
 	ctx.JSON(http.StatusCreated, article)
 }
@@ -216,5 +240,34 @@ func (c *ArticleController) GetArticlesByCursor(ctx *gin.Context) {
 		"data":        articles,
 		"next_cursor": nextCursor,
 		"has_more":    hasMore,
+	})
+}
+
+func (c *ArticleController) SearchRagArticle(ctx *gin.Context) {
+	type RagItemVO struct {
+		ArticleID string `json:"article_id"`
+		Title     string `json:"title"`
+	}
+
+	keyword := ctx.Query("keyword")
+	if keyword == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "搜索关键词不能为空"})
+		return
+	}
+	response, err := global.Rag_grpc_client.SearchRag(ctx.Request.Context(), &rag_grpc.RagSearchRequest{Query: keyword})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	articleList := make([]RagItemVO, 0, len(response.GetItems()))
+	for _, item := range response.GetItems() {
+		articleList = append(articleList, RagItemVO{
+			ArticleID: item.GetArticleId(), // 使用 Getter 防空指针
+			Title:     item.GetTitle(),
+		})
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": articleList,
 	})
 }

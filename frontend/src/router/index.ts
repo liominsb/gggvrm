@@ -60,6 +60,11 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true },
     },
     {
+        path: '/search',
+        name: 'Search',
+        component: () => import('@/views/SearchResults.vue'),
+    },
+    {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
         component: () => import('@/views/NotFound.vue'),

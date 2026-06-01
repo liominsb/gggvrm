@@ -7,6 +7,7 @@ import (
 	"gggvrm/controllers"
 	"gggvrm/global"
 	"gggvrm/mq"
+	"gggvrm/rag_grpc"
 	"gggvrm/router"
 	"gggvrm/utils"
 	"log"
@@ -14,6 +15,9 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -40,6 +44,14 @@ func main() {
 	}
 
 	go controllers.HandleMessages()
+
+	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("无法连接 Python gRPC 服务: %v", err)
+	}
+	defer conn.Close()
+	client := rag_grpc.NewRagServiceClient(conn)
+	global.Rag_grpc_client = client
 
 	srv := &http.Server{
 		Addr:    Port,

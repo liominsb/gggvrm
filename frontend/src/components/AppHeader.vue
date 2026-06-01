@@ -27,6 +27,22 @@
         <span class="brand-text">博客空间</span>
       </div>
 
+      <!-- Search -->
+      <div class="header-search" :class="{ 'header-search--expanded': searchExpanded }">
+        <button class="search-toggle" @click="toggleSearch" aria-label="搜索">
+          <FreshIcon name="search" :size="16" />
+        </button>
+        <input
+          ref="searchInputRef"
+          v-model="searchKeyword"
+          class="header-search-input"
+          type="text"
+          placeholder="语义搜索..."
+          @keyup.enter="handleSearch"
+          @blur="handleSearchBlur"
+        />
+      </div>
+
       <!-- Right -->
       <div class="header-right">
         <template v-if="isLoggedIn">
@@ -80,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
@@ -90,9 +106,41 @@ import FreshButton from '@/components/fresh/FreshButton.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const mobileOpen = ref(false)
+const searchExpanded = ref(false)
+const searchKeyword = ref('')
+const searchInputRef = ref<HTMLInputElement | null>(null)
 
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const currentUser = computed(() => authStore.user)
+
+const toggleSearch = async () => {
+  if (searchExpanded.value && searchKeyword.value.trim()) {
+    handleSearch()
+    return
+  }
+  searchExpanded.value = !searchExpanded.value
+  if (searchExpanded.value) {
+    await nextTick()
+    searchInputRef.value?.focus()
+  }
+}
+
+const handleSearch = () => {
+  const kw = searchKeyword.value.trim()
+  if (!kw) return
+  searchExpanded.value = false
+  router.push({ path: '/search', query: { keyword: kw } })
+  searchKeyword.value = ''
+}
+
+const handleSearchBlur = () => {
+  // 延迟关闭，避免点击搜索按钮时 blur 先触发
+  setTimeout(() => {
+    if (!searchKeyword.value.trim()) {
+      searchExpanded.value = false
+    }
+  }, 200)
+}
 
 const handleCommand = (command: string) => {
   mobileOpen.value = false
@@ -202,6 +250,69 @@ const handleCommand = (command: string) => {
   align-items: center;
   gap: var(--fresh-space-sm);
   flex-shrink: 0;
+}
+
+/* Search */
+.header-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--fresh-radius-lg);
+  background: var(--fresh-bg-hover);
+  transition: all var(--fresh-transition-fast);
+  overflow: hidden;
+  flex-shrink: 0;
+
+  .search-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--fresh-text-secondary);
+    border-radius: var(--fresh-radius-sm);
+    flex-shrink: 0;
+    transition: color var(--fresh-transition-fast);
+
+    &:hover {
+      color: var(--fresh-mint-hover);
+    }
+  }
+
+  .header-search-input {
+    width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--fresh-text-primary);
+    font-family: var(--fresh-font-display);
+    padding: 0;
+    opacity: 0;
+    transition: all var(--fresh-transition-fast);
+
+    &::placeholder {
+      color: var(--fresh-text-muted);
+    }
+  }
+
+  &--expanded {
+    background: var(--fresh-bg-surface);
+    box-shadow: 0 0 0 1px var(--fresh-border-light);
+
+    .header-search-input {
+      width: 180px;
+      padding: 0 8px 0 0;
+      opacity: 1;
+    }
+
+    .search-toggle {
+      color: var(--fresh-mint-hover);
+    }
+  }
 }
 
 /* User Menu */

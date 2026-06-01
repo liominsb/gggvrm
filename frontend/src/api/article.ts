@@ -6,6 +6,7 @@ import type {
     ArticleResponse,
     Comment,
     CommentCreateRequest,
+    RagSearchResponse,
 } from '@/types/article'
 
 /** 后端 toggle 收藏返回结构 */
@@ -178,6 +179,18 @@ export const articleApi = {
      */
     async getLikeCount(articleId: string): Promise<any> {
         const res = await http.get(`/api/v1/article/${articleId}/like`)
+        return res.data
+    },
+
+    /**
+     * RAG 语义搜索
+     * 后端路由: GET /api/v1/article/search?keyword=
+     * 通过 gRPC 调用 Python 向量库服务进行语义匹配
+     */
+    async searchRagArticles(keyword: string): Promise<RagSearchResponse> {
+        const res = await http.get<RagSearchResponse>('/api/v1/article/search', {
+            params: { keyword },
+        })
         return res.data
     },
 }

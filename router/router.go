@@ -62,6 +62,7 @@ func SetupRouter() *gin.Engine {
 		api.PUT("/article/:id", ctrls.ArticleCtrl.UpdateArticle)
 		api.GET("/articles/cursor", ctrls.ArticleCtrl.GetArticlesByCursor)
 		api.GET("/articles/feed", ctrls.FeedCtrl.GetUserFeed)
+		api.GET("/article/search", ctrls.ArticleCtrl.SearchRagArticle)
 
 		api.POST("/article/:id/like", ctrls.LikeCtrl.LikeArticle)
 		api.GET("/article/:id/like", ctrls.LikeCtrl.GetArticlelikes)
