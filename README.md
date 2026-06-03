@@ -1372,6 +1372,16 @@ Authorization: Bearer <token>
 - 服务器每 **30 秒**发送一次 `Ping` 消息
 - 客户端需在 **60 秒**内回复 `Pong`，否则连接将被关闭
 
+**@GGbot 智能问答：**
+
+在聊天室中发送 `@GGbot <问题>` 即可触发 RAG Agent，机器人会自动检索知识库并通过 LLM 生成自然语言回答，结果以 GGbot 身份广播到聊天室。
+
+```
+用户: @GGbot Go的GMP调度模型是什么
+GGbot: 🔍 正在为您检索知识库，请稍候...
+GGbot: Go 的 GMP 模型由 Goroutine、OS Thread 和 Processor 三者协作...
+```
+
 ---
 
 ## API 总览
@@ -1423,17 +1433,22 @@ Authorization: Bearer <token>
 ## RAG 语义搜索架构
 
 ```
-┌──────────────┐    gRPC (localhost:50051)    ┌────────────────────────────────┐
-│  Go 后端      │ ◄──────────────────────────► │  Python gRPC 服务 (py_rag_grpc) │
-│              │                              │                                │
-│  CreateArt. ──── AddRag ─────────────────►  │  LangChain 文本切片              │
-│              │                              │  → DashScope Embeddings 向量化   │
-│  SearchRag ◄─── SearchRag ───────────────── │  → ChromaDB 存储/检索            │
-└──────────────┘                              └────────────────────────────────┘
+┌──────────────┐    gRPC (localhost:50051)    ┌────────────────────────────────────┐
+│  Go 后端      │ ◄──────────────────────────► │  Python gRPC 服务 (py_rag_grpc)     │
+│              │                              │                                    │
+│  CreateArt. ──── AddRag ─────────────────►  │  LangChain 文本切片                  │
+│              │                              │  → DashScope Embeddings 向量化       │
+│  SearchRag ◄─── SearchRag ───────────────── │  → ChromaDB 存储                     │
+│              │                              │                                    │
+│  GGbot ──────── AskRag ──────────────────►  │  Agent(LLM) + SearchRag Tool        │
+│  (聊天室)     │                              │  → Retrieval → FlashrankRerank       │
+│              │                              │  → LLM 生成自然语言回答              │
+└──────────────┘                              └────────────────────────────────────┘
 ```
 
 - **创建文章时**：后端异步调用 `AddRag`，Python 端使用 `RecursiveCharacterTextSplitter`（chunk_size=600, overlap=60）将文章内容切片，通过 DashScope Embeddings 向量化后存入 ChromaDB
-- **语义搜索时**：后端调用 `SearchRag`，Python 端将查询文本向量化后从 ChromaDB 做 cosine 相似度搜索（top-5），返回最匹配的文章 ID 和标题
+- **语义搜索时**：后端调用 `SearchRag`，检索流程为 **向量召回（k=10）→ FlashrankRerank 重排 → 取 top-2**，返回最匹配的文章 ID 和标题
+- **@GGbot 智能问答**：聊天室用户发送 `@GGbot 问题` 后，Go 端通过 gRPC 调用 `AskRag`，Python 端启动 LangChain Agent（内置 `SearchRag` 工具），经 Retrieval → Rerank → LLM 生成自然语言回答，广播回聊天室
 - Proto 定义见 [`rag.proto`](rag.proto)，Go 客户端在 [`rag_grpc/`](rag_grpc/)，Python 服务在 [`py_rag_grpc/`](py_rag_grpc/)
 
 ---
@@ -1448,7 +1463,7 @@ Authorization: Bearer <token>
 
 ```bash
 cd py_rag_grpc
-pip install grpcio grpcio-tools langchain langchain-community langchain-chroma langchain-openai python-dotenv
+pip install grpcio grpcio-tools langchain langchain-community langchain-chroma langchain-openai flashrank langgraph python-dotenv
 # 在 py_rag_grpc/ 下创建 .env 文件，填入：
 #   EMBED_API_KEY=你的 DashScope API Key
 #   LLM_API_KEY=你的 LLM API Key
