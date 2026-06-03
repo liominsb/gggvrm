@@ -1,9 +1,12 @@
 package controllers
 
 import (
+	"context"
 	"gggvrm/global"
+	"gggvrm/rag_grpc"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -70,8 +73,37 @@ func HandleConnections(ctx *gin.Context) {
 
 		// 把收到的消息塞进广播通道
 		global.Me.Publish(msg)
+		if strings.HasPrefix(msg.Content, "@GGbot ") {
+			question := strings.TrimPrefix(msg.Content, "@GGbot ")
+
+			go func(q string) {
+
+				global.Me.Publish(global.Message{
+					Username: "GGbot",
+					Content:  "🔍 正在为您检索知识库，请稍候...",
+				})
+
+				rpcctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+				defer cancel()
+
+				Response, err := global.Rag_grpc_client.AskRag(rpcctx, &rag_grpc.RagQuestionRequest{
+					Question: q,
+				})
+				if err != nil {
+					global.Me.Publish(global.Message{
+						Username: "系统",
+						Content:  "系统错误:" + err.Error(),
+					})
+					return
+				}
+				global.Me.Publish(global.Message{
+					Username: "GGbot",
+					Content:  Response.Answer,
+				})
+			}(question)
+		}
 	}
-}
+} //聊天室bug,
 
 // 监听广播通道，把消息推送给所有人
 func HandleMessages() {

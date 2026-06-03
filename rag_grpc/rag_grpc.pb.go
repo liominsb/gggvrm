@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	RagService_AddRag_FullMethodName    = "/rag.RagService/AddRag"
 	RagService_SearchRag_FullMethodName = "/rag.RagService/SearchRag"
+	RagService_AskRag_FullMethodName    = "/rag.RagService/AskRag"
 )
 
 // RagServiceClient is the client API for RagService service.
@@ -29,6 +30,7 @@ const (
 type RagServiceClient interface {
 	AddRag(ctx context.Context, in *RagRequest, opts ...grpc.CallOption) (*RagResponse, error)
 	SearchRag(ctx context.Context, in *RagSearchRequest, opts ...grpc.CallOption) (*RagSearchResponse, error)
+	AskRag(ctx context.Context, in *RagQuestionRequest, opts ...grpc.CallOption) (*RagQuestionResponse, error)
 }
 
 type ragServiceClient struct {
@@ -59,12 +61,23 @@ func (c *ragServiceClient) SearchRag(ctx context.Context, in *RagSearchRequest, 
 	return out, nil
 }
 
+func (c *ragServiceClient) AskRag(ctx context.Context, in *RagQuestionRequest, opts ...grpc.CallOption) (*RagQuestionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RagQuestionResponse)
+	err := c.cc.Invoke(ctx, RagService_AskRag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RagServiceServer is the server API for RagService service.
 // All implementations must embed UnimplementedRagServiceServer
 // for forward compatibility.
 type RagServiceServer interface {
 	AddRag(context.Context, *RagRequest) (*RagResponse, error)
 	SearchRag(context.Context, *RagSearchRequest) (*RagSearchResponse, error)
+	AskRag(context.Context, *RagQuestionRequest) (*RagQuestionResponse, error)
 	mustEmbedUnimplementedRagServiceServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedRagServiceServer) AddRag(context.Context, *RagRequest) (*RagR
 }
 func (UnimplementedRagServiceServer) SearchRag(context.Context, *RagSearchRequest) (*RagSearchResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SearchRag not implemented")
+}
+func (UnimplementedRagServiceServer) AskRag(context.Context, *RagQuestionRequest) (*RagQuestionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AskRag not implemented")
 }
 func (UnimplementedRagServiceServer) mustEmbedUnimplementedRagServiceServer() {}
 func (UnimplementedRagServiceServer) testEmbeddedByValue()                    {}
@@ -138,6 +154,24 @@ func _RagService_SearchRag_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RagService_AskRag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RagQuestionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RagServiceServer).AskRag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RagService_AskRag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RagServiceServer).AskRag(ctx, req.(*RagQuestionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RagService_ServiceDesc is the grpc.ServiceDesc for RagService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var RagService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SearchRag",
 			Handler:    _RagService_SearchRag_Handler,
+		},
+		{
+			MethodName: "AskRag",
+			Handler:    _RagService_AskRag_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

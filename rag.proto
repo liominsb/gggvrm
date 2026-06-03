@@ -6,6 +6,7 @@ option go_package = "./rag_grpc";
 service RagService {
   rpc AddRag (RagRequest) returns (RagResponse) {}
   rpc SearchRag (RagSearchRequest) returns (RagSearchResponse) {}
+  rpc AskRag (RagQuestionRequest) returns (RagQuestionResponse) {}
 }
 
 message RagRequest {
@@ -29,3 +30,12 @@ message RagSearchResponse {
   }
   repeated RagItem items = 1;
 }
+
+message RagQuestionRequest {
+  string question = 1;
+}
+
+message RagQuestionResponse {
+  string answer = 1;
+}
+//protoc --go_out=. --go-grpc_out=. rag.proto

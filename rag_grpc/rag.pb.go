@@ -213,6 +213,94 @@ func (x *RagSearchResponse) GetItems() []*RagSearchResponse_RagItem {
 	return nil
 }
 
+type RagQuestionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Question      string                 `protobuf:"bytes,1,opt,name=question,proto3" json:"question,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RagQuestionRequest) Reset() {
+	*x = RagQuestionRequest{}
+	mi := &file_rag_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RagQuestionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RagQuestionRequest) ProtoMessage() {}
+
+func (x *RagQuestionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rag_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RagQuestionRequest.ProtoReflect.Descriptor instead.
+func (*RagQuestionRequest) Descriptor() ([]byte, []int) {
+	return file_rag_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RagQuestionRequest) GetQuestion() string {
+	if x != nil {
+		return x.Question
+	}
+	return ""
+}
+
+type RagQuestionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Answer        string                 `protobuf:"bytes,1,opt,name=answer,proto3" json:"answer,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RagQuestionResponse) Reset() {
+	*x = RagQuestionResponse{}
+	mi := &file_rag_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RagQuestionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RagQuestionResponse) ProtoMessage() {}
+
+func (x *RagQuestionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rag_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RagQuestionResponse.ProtoReflect.Descriptor instead.
+func (*RagQuestionResponse) Descriptor() ([]byte, []int) {
+	return file_rag_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RagQuestionResponse) GetAnswer() string {
+	if x != nil {
+		return x.Answer
+	}
+	return ""
+}
+
 type RagSearchResponse_RagItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ArticleId     string                 `protobuf:"bytes,1,opt,name=article_id,json=articleId,proto3" json:"article_id,omitempty"`
@@ -223,7 +311,7 @@ type RagSearchResponse_RagItem struct {
 
 func (x *RagSearchResponse_RagItem) Reset() {
 	*x = RagSearchResponse_RagItem{}
-	mi := &file_rag_proto_msgTypes[4]
+	mi := &file_rag_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -235,7 +323,7 @@ func (x *RagSearchResponse_RagItem) String() string {
 func (*RagSearchResponse_RagItem) ProtoMessage() {}
 
 func (x *RagSearchResponse_RagItem) ProtoReflect() protoreflect.Message {
-	mi := &file_rag_proto_msgTypes[4]
+	mi := &file_rag_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -285,11 +373,16 @@ const file_rag_proto_rawDesc = "" +
 	"\aRagItem\x12\x1d\n" +
 	"\n" +
 	"article_id\x18\x01 \x01(\tR\tarticleId\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title2y\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\"0\n" +
+	"\x12RagQuestionRequest\x12\x1a\n" +
+	"\bquestion\x18\x01 \x01(\tR\bquestion\"-\n" +
+	"\x13RagQuestionResponse\x12\x16\n" +
+	"\x06answer\x18\x01 \x01(\tR\x06answer2\xb8\x01\n" +
 	"\n" +
 	"RagService\x12-\n" +
 	"\x06AddRag\x12\x0f.rag.RagRequest\x1a\x10.rag.RagResponse\"\x00\x12<\n" +
-	"\tSearchRag\x12\x15.rag.RagSearchRequest\x1a\x16.rag.RagSearchResponse\"\x00B\fZ\n" +
+	"\tSearchRag\x12\x15.rag.RagSearchRequest\x1a\x16.rag.RagSearchResponse\"\x00\x12=\n" +
+	"\x06AskRag\x12\x17.rag.RagQuestionRequest\x1a\x18.rag.RagQuestionResponse\"\x00B\fZ\n" +
 	"./rag_grpcb\x06proto3"
 
 var (
@@ -304,22 +397,26 @@ func file_rag_proto_rawDescGZIP() []byte {
 	return file_rag_proto_rawDescData
 }
 
-var file_rag_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_rag_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_rag_proto_goTypes = []any{
 	(*RagRequest)(nil),                // 0: rag.RagRequest
 	(*RagResponse)(nil),               // 1: rag.RagResponse
 	(*RagSearchRequest)(nil),          // 2: rag.RagSearchRequest
 	(*RagSearchResponse)(nil),         // 3: rag.RagSearchResponse
-	(*RagSearchResponse_RagItem)(nil), // 4: rag.RagSearchResponse.RagItem
+	(*RagQuestionRequest)(nil),        // 4: rag.RagQuestionRequest
+	(*RagQuestionResponse)(nil),       // 5: rag.RagQuestionResponse
+	(*RagSearchResponse_RagItem)(nil), // 6: rag.RagSearchResponse.RagItem
 }
 var file_rag_proto_depIdxs = []int32{
-	4, // 0: rag.RagSearchResponse.items:type_name -> rag.RagSearchResponse.RagItem
+	6, // 0: rag.RagSearchResponse.items:type_name -> rag.RagSearchResponse.RagItem
 	0, // 1: rag.RagService.AddRag:input_type -> rag.RagRequest
 	2, // 2: rag.RagService.SearchRag:input_type -> rag.RagSearchRequest
-	1, // 3: rag.RagService.AddRag:output_type -> rag.RagResponse
-	3, // 4: rag.RagService.SearchRag:output_type -> rag.RagSearchResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	4, // 3: rag.RagService.AskRag:input_type -> rag.RagQuestionRequest
+	1, // 4: rag.RagService.AddRag:output_type -> rag.RagResponse
+	3, // 5: rag.RagService.SearchRag:output_type -> rag.RagSearchResponse
+	5, // 6: rag.RagService.AskRag:output_type -> rag.RagQuestionResponse
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -336,7 +433,7 @@ func file_rag_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rag_proto_rawDesc), len(file_rag_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
