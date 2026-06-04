@@ -1,6 +1,6 @@
 # GGGVRM — 全栈博客系统
 
-基于 **Go + Gin + GORM + MySQL + Redis + RabbitMQ + WebSocket + gRPC** 构建后端服务，搭配 **Vue 3 + TypeScript + Element Plus** 构建前端 SPA 的全栈博客平台。支持基于 **Python + 向量库** 的 RAG 语义搜索能力。
+基于 **Go + Gin + GORM + MySQL + Redis + RabbitMQ + WebSocket + gRPC  + Langchain** 构建后端服务，搭配 **Vue 3 + TypeScript + Element Plus** 构建前端 SPA 的全栈博客平台。支持基于 **Python + 向量库** 的 RAG 语义搜索能力。
 
 ## 技术栈
 
